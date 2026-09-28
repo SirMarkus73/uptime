@@ -1,0 +1,24 @@
+{
+  "name": "uptime",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "biome lint",
+    "format": "biome format",
+    "check": "biome check",
+    "lint:write": "biome list --write",
+    "format:write": "biome format --write",
+    "check:write": "biome check --write",
+    "build": "turbo build",
+    "dev": "turbo dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.2",
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "turbo": "^2.11.5"
+  }
+}
