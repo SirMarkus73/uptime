@@ -23,6 +23,9 @@ importers:
       '@nestjs/core':
         specifier: ^12.0.1
         version: 12.1.1(@nestjs/common@12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.1.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/http-client':
+        specifier: ^0.0.1
+        version: 0.0.1(@nestjs/common@12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.1)(reflect-metadata@0.2.2)
       '@nestjs/platform-express':
         specifier: ^12.0.1
         version: 12.1.1(@nestjs/common@12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.1)
@@ -35,6 +38,9 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@nestjs/cli':
         specifier: ^12.0.0
@@ -402,6 +408,14 @@ packages:
         optional: true
       '@nestjs/websockets':
         optional: true
+
+  '@nestjs/http-client@0.0.1':
+    resolution: {integrity: sha512-AY32I3YZ7uREr07gp9X2nvvEYgWPR/1FvD/QSanu8stzrmGv00AUTC4n+YqeoPUZK6nwJBbTsGKh7KElRJ7Ovg==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      '@nestjs/common': ^11.0.0 || ^12.0.0
+      '@nestjs/core': ^11.0.0 || ^12.0.0
+      reflect-metadata: ^0.1.13 || ^0.2.0
 
   '@nestjs/mapped-types@12.0.0':
     resolution: {integrity: sha512-aX7lxZcqXldtnSr0bgT2ZPQvpTpIwBMW1GMX29o4s3q02vmq6JoTYuPW0GwYXa8BiFMRX7WbGZVDA703pNqOMQ==}
@@ -2032,6 +2046,9 @@ packages:
     resolution: {integrity: sha512-xYqdZFUK/VYazNl/oCDYN+3WloWQwMfZxBoiNt6qNyk+xfOdi598muWE42rNZFp1kNOiqW936q5RhUdnpqElSg==}
     engines: {node: '>=18'}
 
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+
 snapshots:
 
   '@angular-devkit/core@22.2.0(chokidar@5.0.0)':
@@ -2297,6 +2314,12 @@ snapshots:
       uid: 2.0.2
     optionalDependencies:
       '@nestjs/platform-express': 12.1.1(@nestjs/common@12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.1)
+
+  '@nestjs/http-client@0.0.1(@nestjs/common@12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.1)(reflect-metadata@0.2.2)':
+    dependencies:
+      '@nestjs/common': 12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 12.1.1(@nestjs/common@12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.1.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
 
   '@nestjs/mapped-types@12.0.0(@nestjs/common@12.1.1(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)':
     dependencies:
@@ -3742,3 +3765,5 @@ snapshots:
   wrappy@1.0.2: {}
 
   yoctocolors@2.2.0: {}
+
+  zod@4.6.5: {}
