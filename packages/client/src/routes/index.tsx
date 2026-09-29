@@ -46,7 +46,7 @@ function Home() {
             id="url"
             name="url"
             type="text"
-            placeholder="https://ejemplo.com"
+            placeholder="https://www.example.com"
             autoComplete="off"
             className="min-w-0 flex-1 bg-transparent px-3 text-neutral-100 placeholder:text-neutral-500 outline-none"
           />
