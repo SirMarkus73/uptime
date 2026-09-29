@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing"
-import { checkStateDto } from "./dto/check-state.dto.js"
+import { CheckStateDto } from "./dto/check-state.dto.js"
 import { UptimeController } from "./uptime.controller.js"
 import { UptimeService } from "./uptime.service.js"
 
@@ -22,7 +22,7 @@ describe("UptimeController", () => {
   })
 
   it("delegates the url to UptimeService.checkState", async () => {
-    const state: checkStateDto = {
+    const state: CheckStateDto = {
       isUp: true,
       statusCode: 200,
       responseTimeMs: 42,
@@ -38,7 +38,7 @@ describe("UptimeController", () => {
   })
 
   it("returns the 'down' state from the service", async () => {
-    const state: checkStateDto = {
+    const state: CheckStateDto = {
       isUp: false,
       statusCode: null,
       responseTimeMs: 10,

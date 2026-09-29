@@ -15,12 +15,12 @@ export const checkStateSchema = z.object({
   checkedAt: z.iso.datetime(),
 })
 
-export const checkStateInputSchema = z.object({
+export const checkStateQuerySchema = z.object({
   url: z.httpUrl().meta({
     title: "Url",
     description: "Url to check if it's up",
   }),
 })
 
-export type checkStateDto = z.infer<typeof checkStateSchema>
-export type checkStateInputSchema = z.infer<typeof checkStateInputSchema>
+export type CheckStateDto = z.infer<typeof checkStateSchema>
+export type CheckStateQueryDto = z.infer<typeof checkStateQuerySchema>

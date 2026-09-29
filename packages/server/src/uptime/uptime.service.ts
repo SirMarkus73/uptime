@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { HttpClient, HttpNetworkError } from "@nestjs/http-client"
-import { checkStateDto } from "./dto/check-state.dto.js"
+import { CheckStateDto } from "./dto/check-state.dto.js"
 
 @Injectable()
 export class UptimeService {
@@ -10,7 +10,7 @@ export class UptimeService {
     this.logger = new Logger(UptimeService.name)
   }
 
-  async checkState(url: string): Promise<checkStateDto> {
+  async checkState(url: string): Promise<CheckStateDto> {
     const start = performance.now()
 
     try {

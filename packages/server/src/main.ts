@@ -1,10 +1,28 @@
+import { existsSync, writeFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { StandardSchemaValidationPipe } from "@nestjs/common"
 import { NestFactory } from "@nestjs/core"
+import type { NestExpressApplication } from "@nestjs/platform-express"
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
+import { apiReference } from "@scalar/nestjs-api-reference"
+import type { NextFunction, Request, Response } from "express"
+import openapiTS, { astToString } from "openapi-typescript"
 import { AppModule } from "./app.module.js"
 
+const API_PREFIX = "api"
+
+const CLIENT_OPENAPI_PATH = new URL(
+  "../../client/src/lib/api-schema.ts",
+  import.meta.url,
+)
+const CLIENT_DIST_PATH = fileURLToPath(
+  new URL("../../client/dist", import.meta.url),
+)
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {})
+
+  app.setGlobalPrefix(API_PREFIX)
 
   const config = new DocumentBuilder()
     .setTitle("Cats example")
@@ -43,9 +61,38 @@ async function bootstrap() {
     })
     .build()
 
-  const documentFactory = () => SwaggerModule.createDocument(app, config)
+  const document = SwaggerModule.createDocument(app, config)
 
-  SwaggerModule.setup("api", app, documentFactory)
+  if (process.env.NODE_ENV !== "production") {
+    const ast = await openapiTS(JSON.stringify(document))
+    const contents = astToString(ast)
+
+    writeFileSync(CLIENT_OPENAPI_PATH, contents)
+  }
+
+  SwaggerModule.setup(API_PREFIX, app, () => document, {
+    ui: false,
+    raw: ["json"],
+    jsonDocumentUrl: `${API_PREFIX}/openapi.json`,
+  })
+
+  app.use(
+    `/${API_PREFIX}/reference`,
+    apiReference({ url: `/${API_PREFIX}/openapi.json` }),
+  )
+
+  // Sirve el frontend compilado desde el mismo servidor. Cualquier ruta que no
+  // sea de la API devuelve index.html para que el router del cliente la maneje.
+  if (existsSync(CLIENT_DIST_PATH)) {
+    app.useStaticAssets(CLIENT_DIST_PATH)
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.method !== "GET" || req.path.startsWith(`/${API_PREFIX}`)) {
+        return next()
+      }
+      res.sendFile("index.html", { root: CLIENT_DIST_PATH })
+    })
+  }
+
   app.useGlobalPipes(new StandardSchemaValidationPipe())
 
   await app.listen(process.env.PORT ?? 3000)

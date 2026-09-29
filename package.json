@@ -11,7 +11,8 @@
     "format:write": "biome format --write",
     "check:write": "biome check --write",
     "build": "turbo build",
-    "dev": "turbo dev"
+    "dev": "turbo dev",
+    "start": "pnpm run -F packages/server start"
   },
   "keywords": [],
   "author": "",
