@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router"
-import { authClient } from "#/lib/authClient"
-import { CreateMonitor } from "./create-monitor"
+import { buttonStyles } from "#/core/design-system/button"
+import { Skeleton } from "#/core/design-system/skeleton"
+import { authClient } from "#/features/auth/auth-client"
+import { CreateMonitorForm } from "./create-monitor-form"
 import { MonitorList } from "./monitor-list"
 
-export function Monitors() {
+export function MonitorsSection() {
   const { data: sessionData, isPending } = authClient.useSession()
 
   return (
@@ -12,10 +14,10 @@ export function Monitors() {
         Monitores
       </h2>
       {isPending ? (
-        <div className="h-48 animate-pulse rounded-2xl border border-neutral-800 bg-neutral-900" />
+        <Skeleton className="h-48" />
       ) : sessionData?.user ? (
         <>
-          <CreateMonitor />
+          <CreateMonitorForm />
           <MonitorList />
         </>
       ) : (
@@ -54,15 +56,15 @@ function LockedMonitors() {
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Link
-          to="/login"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-neutral-950 transition hover:bg-accent-hover active:scale-95"
-        >
+        <Link to="/login" className={buttonStyles({ className: "text-sm" })}>
           Iniciar sesión
         </Link>
         <Link
           to="/register"
-          className="rounded-lg border border-neutral-800 px-4 py-2 text-sm text-neutral-300 transition hover:bg-neutral-800/60 hover:text-neutral-100 active:scale-95"
+          className={buttonStyles({
+            variant: "secondary",
+            className: "text-sm",
+          })}
         >
           Crear cuenta
         </Link>

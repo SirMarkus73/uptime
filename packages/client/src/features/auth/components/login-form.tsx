@@ -1,9 +1,11 @@
 import { useNavigate } from "@tanstack/react-router"
 import { type SubmitEventHandler, useState } from "react"
-import { authClient } from "#/lib/authClient"
-import { AuthCard, AuthField, AuthLink, AuthSubmit } from "./auth-form"
+import { Button } from "#/core/design-system/button"
+import { TextField } from "#/core/design-system/text-field"
+import { authClient } from "#/features/auth/auth-client"
+import { AuthCard, AuthLink } from "#/features/auth/components/auth-card"
 
-export function Login() {
+export function LoginForm() {
   const navigate = useNavigate()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string>()
@@ -48,21 +50,25 @@ export function Login() {
         </>
       }
     >
-      <AuthField
+      <TextField
+        required
         label="Correo electrónico"
         name="email"
         type="email"
         placeholder="tu@correo.com"
         autoComplete="email"
       />
-      <AuthField
+      <TextField
+        required
         label="Contraseña"
         name="password"
         type="password"
         placeholder="••••••••"
         autoComplete="current-password"
       />
-      <AuthSubmit isPending={isPending}>Entrar</AuthSubmit>
+      <Button type="submit" disabled={isPending} className="mt-2">
+        {isPending ? "Cargando…" : "Entrar"}
+      </Button>
     </AuthCard>
   )
 }

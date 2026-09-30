@@ -1,6 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate, useRouter } from "@tanstack/react-router"
-import { authClient } from "#/lib/authClient"
+import { Button, buttonStyles } from "#/core/design-system/button"
+import { StatusDot } from "#/core/design-system/status-dot"
+import { authClient } from "#/features/auth/auth-client"
 
 const navLinkClass =
   "rounded-lg px-3 py-1.5 text-sm text-neutral-400 transition-colors hover:bg-neutral-800/60 hover:text-neutral-100"
@@ -26,10 +28,7 @@ export function Header() {
           to="/"
           className="flex items-center gap-2 font-dot text-xl font-bold tracking-tight text-neutral-100"
         >
-          <span className="relative flex size-2.5">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-neutral-100 opacity-75" />
-            <span className="relative inline-flex size-2.5 rounded-full bg-neutral-100" />
-          </span>
+          <StatusDot status="neutral" />
           Uptime
         </Link>
 
@@ -55,13 +54,9 @@ export function Header() {
                   {sessionData.user.name}
                 </span>
               </span>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="rounded-lg border border-neutral-800 px-3 py-1.5 text-sm text-neutral-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 active:scale-95"
-              >
+              <Button variant="danger" size="sm" onClick={handleSignOut}>
                 Cerrar sesión
-              </button>
+              </Button>
             </>
           ) : (
             <>
@@ -76,7 +71,7 @@ export function Header() {
               </Link>
               <Link
                 to="/register"
-                className="ml-1 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:bg-accent-hover active:scale-95"
+                className={buttonStyles({ size: "sm", className: "ml-1" })}
               >
                 Registrarse
               </Link>

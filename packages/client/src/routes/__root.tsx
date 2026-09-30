@@ -2,7 +2,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools"
 import type { QueryClient } from "@tanstack/react-query"
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
-import { Header } from "#/components/header"
+import { Header } from "#/core/layout/header"
 
 import "../styles.css"
 
