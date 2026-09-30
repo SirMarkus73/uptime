@@ -10,5 +10,11 @@
   "files.readonlyInclude": {
     "**/routeTree.gen.ts": true,
     "**/lib/api-schema.ts": true
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
   }
 }
