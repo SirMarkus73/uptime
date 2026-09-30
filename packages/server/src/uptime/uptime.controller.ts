@@ -1,5 +1,6 @@
 import { Controller, Get, Query } from "@nestjs/common"
 import { ApiOkResponse, ApiOperation } from "@nestjs/swagger"
+import { AllowAnonymous } from "@thallesp/nestjs-better-auth"
 import {
   CheckStateDto,
   type CheckStateQueryDto,
@@ -16,6 +17,7 @@ export class UptimeController {
   @ApiOkResponse({
     standardSchema: checkStateSchema,
   })
+  @AllowAnonymous()
   @Get()
   async checkUrl(
     @Query({ schema: checkStateQuerySchema }) params: CheckStateQueryDto,

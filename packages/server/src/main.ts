@@ -20,7 +20,10 @@ const CLIENT_DIST_PATH = fileURLToPath(
 )
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {})
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Required for betterAuth module
+    bodyParser: false,
+  })
 
   app.setGlobalPrefix(API_PREFIX)
 
@@ -35,7 +38,7 @@ async function bootstrap() {
       schema: {
         type: "object",
         properties: {
-          statusCode: { type: "number", example: 429 },
+          statusCode: { type: "number", enum: [429] },
           message: {
             type: "string",
             example: "ThrottlerException: Too Many Requests",

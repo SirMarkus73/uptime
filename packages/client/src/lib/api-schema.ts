@@ -86,8 +86,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example 429 */
-                        statusCode?: number;
+                        /** @enum {number} */
+                        statusCode?: 429;
                         /** @example ThrottlerException: Too Many Requests */
                         message?: string;
                     };
@@ -156,8 +156,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @example 429 */
-                        statusCode?: number;
+                        /** @enum {number} */
+                        statusCode?: 429;
                         /** @example ThrottlerException: Too Many Requests */
                         message?: string;
                     };

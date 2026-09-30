@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
+import { authClient } from "#/lib/authClient"
 import { $api } from "#/lib/fetchClient"
 
 export const Route = createFileRoute("/")({ component: Home })
 
 function Home() {
   const [url, setUrl] = useState("")
+
+  const { data: sessionData } = authClient.useSession()
 
   const { data, isEnabled, error, isLoading, isFetching, refetch } =
     $api.useQuery(
@@ -21,7 +24,9 @@ function Home() {
         <header className="text-center">
           <h1 className="text-4xl font-semibold tracking-tight">Uptime</h1>
           <p className="mt-2 text-neutral-400">
-            Comprueba si una web está disponible
+            {sessionData?.user
+              ? `Hola ${sessionData.user.name} comprueba si una web está disponible`
+              : "Comprueba si una web está disponible"}
           </p>
         </header>
 

@@ -12,6 +12,8 @@ const schema = z.object({
     .default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url(),
+  // Solo el origen: better-auth le añade su basePath (/api/auth).
+  BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
 })
 
 const parsed = schema.safeParse(process.env)

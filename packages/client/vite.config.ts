@@ -14,7 +14,17 @@ const config = defineConfig({
   ],
   server: {
     proxy: {
-      "/api": "http://localhost:3000",
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("proxyReq", (proxyReq) => {
+            if (proxyReq.getHeader("origin")) {
+              proxyReq.setHeader("origin", "http://localhost:3000")
+            }
+          })
+        },
+      },
     },
   },
 })

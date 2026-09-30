@@ -6,8 +6,10 @@ import {
   ThrottlerGuard,
   ThrottlerModule,
 } from "@nestjs/throttler"
+import { AuthModule } from "@thallesp/nestjs-better-auth"
 import { AppController } from "./app.controller.js"
 import { AppService } from "./app.service.js"
+import { auth } from "./lib/auth.js"
 import { UptimeModule } from "./uptime/uptime.module.js"
 
 @Module({
@@ -24,6 +26,7 @@ import { UptimeModule } from "./uptime/uptime.module.js"
         },
       ],
     }),
+    AuthModule.forRoot({ auth }),
     UptimeModule,
   ],
   controllers: [AppController],
