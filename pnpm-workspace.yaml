@@ -4,3 +4,13 @@ allowBuilds:
   '@scarf/scarf': false
   "esbuild": true
   "lightningcss": true
+minimumReleaseAgeExclude:
+  - '@nestjs/common@12.1.2'
+  - '@nestjs/core@12.1.2'
+  - '@nestjs/platform-express@12.1.2'
+  - '@nestjs/testing@12.1.2'
+  - '@scalar/client-side-rendering@0.4.6'
+  - '@scalar/helpers@0.16.0'
+  - '@scalar/nestjs-api-reference@1.2.24'
+  - '@scalar/schemas@0.12.2'
+  - '@scalar/types@0.22.2'
