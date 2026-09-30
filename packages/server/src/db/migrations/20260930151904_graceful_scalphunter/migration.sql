@@ -16,5 +16,7 @@ CREATE TABLE "monitor" (
 	"createdAt" timestamp DEFAULT now()
 );
 --> statement-breakpoint
+CREATE INDEX "check_monitor_id_checked_at_idx" ON "check" ("monitorId","checkedAt" DESC NULLS LAST);--> statement-breakpoint
+CREATE UNIQUE INDEX "unique_name_and_owner" ON "monitor" ("ownedBy","name");--> statement-breakpoint
 ALTER TABLE "check" ADD CONSTRAINT "check_monitorId_monitor_id_fkey" FOREIGN KEY ("monitorId") REFERENCES "monitor"("id") ON DELETE CASCADE ON UPDATE CASCADE;--> statement-breakpoint
 ALTER TABLE "monitor" ADD CONSTRAINT "monitor_ownedBy_user_id_fkey" FOREIGN KEY ("ownedBy") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

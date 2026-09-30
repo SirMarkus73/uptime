@@ -55,6 +55,9 @@ export class MonitorsService {
       with: {
         checks: {
           limit: 5,
+          orderBy: {
+            checkedAt: "desc",
+          },
         },
       },
     })
@@ -76,26 +79,18 @@ export class MonitorsService {
       where: {
         ownedBy,
       },
-      with: {
-        checks: {
-          columns: {
-            isUp: true,
-          },
-          limit: 1,
-          orderBy: {
-            checkedAt: "desc",
-          },
-        },
+      extras: {
+        isUp: (m, { sql }) =>
+          sql<boolean | null>`SELECT ${check.isUp} 
+            FROM ${check} 
+            WHERE ${check.monitorId} = ${m.id} 
+            ORDER BY ${check.checkedAt} DESC 
+            LIMIT 1
+            `,
       },
     })
 
-    return monitors.map((m) => ({
-      createdAt: m.createdAt,
-      id: m.id,
-      isUp: m.checks[0]?.isUp === undefined ? null : m.checks[0].isUp,
-      name: m.name,
-      webPage: m.webPage,
-    }))
+    return monitors
   }
 
   async runMonitor({ id }: RunMonitorDto): Promise<RunMonitorResultDto> {

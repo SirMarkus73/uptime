@@ -2,6 +2,7 @@ import { defineRelationsPart } from "drizzle-orm"
 import {
   boolean,
   camelCase,
+  index,
   integer,
   numeric,
   timestamp,
@@ -16,18 +17,30 @@ import {
 import z from "zod"
 import { monitor } from "./monitor-schema.js"
 
-export const check = camelCase.table("check", {
-  id: uuid().defaultRandom().primaryKey(),
-  monitorId: uuid()
-    .notNull()
-    .references(() => monitor.id, { onDelete: "cascade", onUpdate: "cascade" }),
+export const check = camelCase.table(
+  "check",
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    monitorId: uuid()
+      .notNull()
+      .references(() => monitor.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
 
-  isUp: boolean().notNull(),
-  statusCode: integer(),
-  responseTimeMs: numeric({ precision: 8, mode: "number" }).notNull(),
-  errorCode: varchar(),
-  checkedAt: timestamp({ mode: "string" }).notNull().defaultNow(),
-})
+    isUp: boolean().notNull(),
+    statusCode: integer(),
+    responseTimeMs: numeric({ precision: 8, mode: "number" }).notNull(),
+    errorCode: varchar(),
+    checkedAt: timestamp({ mode: "string" }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("check_monitor_id_checked_at_idx").on(
+      t.monitorId,
+      t.checkedAt.desc(),
+    ),
+  ],
+)
 
 // -- Relations
 export const checkRelations = defineRelationsPart({ monitor, check }, (r) => ({

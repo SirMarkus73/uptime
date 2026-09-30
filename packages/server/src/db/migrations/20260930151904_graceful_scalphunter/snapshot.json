@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "1fb17685-cb03-4463-9d76-351d82c8b59e",
+  "id": "81c1c5eb-7f48-4c3c-a4f1-f22c9d34d3df",
   "prevIds": [
     "84881066-ea01-4ea8-b2ec-6f76f2c9a095"
   ],
@@ -702,6 +702,62 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "verification"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "monitorId",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "checkedAt",
+          "isExpression": false,
+          "asc": false,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "check_monitor_id_checked_at_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "check"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "ownedBy",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "unique_name_and_owner",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "monitor"
     },
     {
       "nameExplicit": false,

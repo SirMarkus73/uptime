@@ -1,9 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { SubmitEventHandler } from "react"
 import { $api } from "#/lib/fetchClient"
 
 export function CreateMonitor() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const listQueryKey = $api.queryOptions("get", "/api/monitors").queryKey
 
   const { mutate, isPending, isSuccess, isError, error } = $api.useMutation(
     "post",
@@ -13,6 +16,9 @@ export function CreateMonitor() {
         if (e.statusCode === 401) {
           navigate({ to: "/login" })
         }
+      },
+      onSuccess() {
+        queryClient.invalidateQueries({ queryKey: listQueryKey })
       },
     },
   )
