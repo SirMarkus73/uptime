@@ -1,6 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common"
-import { HttpClient, HttpNetworkError } from "@nestjs/http-client"
-import { CheckStateDto } from "./dto/check-state.dto.js"
+import {
+  HttpClient,
+  HttpNetworkError,
+  HttpTimeoutError,
+} from "@nestjs/http-client"
+import { CheckStateResultDto } from "./dto/check-state.dto.js"
 
 @Injectable()
 export class UptimeService {
@@ -10,14 +14,14 @@ export class UptimeService {
     this.logger = new Logger(UptimeService.name)
   }
 
-  async checkState(url: string): Promise<CheckStateDto> {
+  async checkState(url: string): Promise<CheckStateResultDto> {
     const start = performance.now()
 
     try {
       const response = await this.client.head(url, {
         retry: false,
         redirect: "follow",
-        signal: AbortSignal.timeout(10_000),
+        timeout: 10_000,
         throwOnHttpError: false,
       })
 
@@ -33,25 +37,17 @@ export class UptimeService {
     } catch (error) {
       const end = performance.now()
 
-      let errorCode = ""
+      let errorCode: string
 
-      if (error instanceof HttpNetworkError) {
-        this.logger.warn(`${url} -> DOWN: ${error.name}: ${error.message}`)
-
-        errorCode = (error.cause as { code: string }).code
-      }
-
-      if (
-        !errorCode &&
-        error instanceof Error &&
-        error.name === "TimeoutError"
-      ) {
+      if (error instanceof HttpTimeoutError) {
         this.logger.warn(`${url} -> DOWN: Timeout`)
 
         errorCode = "TIMEOUT"
-      }
+      } else if (error instanceof HttpNetworkError) {
+        this.logger.warn(`${url} -> DOWN: ${error.name}: ${error.message}`)
 
-      if (!errorCode) {
+        errorCode = (error.cause as { code?: string } | undefined)?.code ?? ""
+      } else {
         this.logger.error(`${url} -> DOWN: Unknown`)
 
         errorCode = "UNKNOWN_ERROR"

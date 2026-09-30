@@ -1,21 +1,20 @@
-import { Test, type TestingModule } from "@nestjs/testing"
+import { Test } from "@nestjs/testing"
+import { test as baseTest } from "vitest"
 import { AppController } from "./app.controller.js"
 import { AppService } from "./app.service.js"
 
+const test = baseTest.extend("appController", async () => {
+  const app = await Test.createTestingModule({
+    controllers: [AppController],
+    providers: [AppService],
+  }).compile()
+
+  return app.get(AppController)
+})
+
 describe("AppController", () => {
-  let appController: AppController
-
-  beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
-    }).compile()
-
-    appController = app.get<AppController>(AppController)
-  })
-
   describe("health", () => {
-    it("should return {up: true}", () => {
+    test("should return {up: true}", ({ appController }) => {
       expect(appController.health()).toEqual({ up: true })
     })
   })

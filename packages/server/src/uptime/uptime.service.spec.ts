@@ -1,90 +1,127 @@
 import { HttpClientModule, HttpNetworkError } from "@nestjs/http-client"
-import { Test, TestingModule } from "@nestjs/testing"
+import { Test } from "@nestjs/testing"
+import { test as baseTest } from "vitest"
+import { checkStateResultSchema } from "./dto/check-state.dto.js"
 import { UptimeModule } from "./uptime.module.js"
 import { UptimeService } from "./uptime.service.js"
 
-describe("UptimeService", () => {
-  const fetch = vi.fn<typeof global.fetch>()
-  let service: UptimeService
-
-  beforeEach(async () => {
-    fetch.mockReset()
-    const module: TestingModule = await Test.createTestingModule({
+const test = baseTest
+  .extend("fetch", () => vi.fn<typeof global.fetch>())
+  .extend("service", async ({ fetch }) => {
+    const module = await Test.createTestingModule({
       imports: [HttpClientModule.forRoot({ fetch }), UptimeModule],
     }).compile()
 
-    service = module.get<UptimeService>(UptimeService)
+    return module.get(UptimeService)
   })
 
-  it("should be defined", () => {
+describe("UptimeService", () => {
+  test("should be defined", ({ service }) => {
     expect(service).toBeDefined()
   })
 
-  it("returns 'up', when 200", async () => {
+  test("returns 'up', when 200", async ({ fetch, service }) => {
     fetch.mockResolvedValueOnce(Response.json("works"))
 
     const result = await service.checkState("https://example.com")
 
-    expect(result.isUp).toBe(true)
-    expect(result.statusCode).toBe(200)
-    expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.errorCode).toBeNull()
-    expect(result.checkedAt).toBeTypeOf("string")
+    expect(result).toEqual(expect.schemaMatching(checkStateResultSchema))
+    expect(result).toMatchObject({
+      isUp: true,
+      statusCode: 200,
+      errorCode: null,
+    })
   })
 
-  it("returns 'down', when 500 (HttpResponseError)", async () => {
+  test("returns 'down', when 500 (HttpResponseError)", async ({
+    fetch,
+    service,
+  }) => {
     fetch.mockResolvedValueOnce(Response.json(null, { status: 500 }))
 
     const result = await service.checkState("https://example.com")
 
-    expect(result.isUp).toBe(false)
-    expect(result.statusCode).toBe(500)
-    expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.errorCode).toBeNull()
-    expect(result.checkedAt).toBeTypeOf("string")
+    expect(result).toEqual(expect.schemaMatching(checkStateResultSchema))
+    expect(result).toMatchObject({
+      isUp: false,
+      statusCode: 500,
+      errorCode: null,
+    })
   })
 
-  it("returns 'down' when DNS does not resolve", async () => {
+  test("returns 'down' when DNS does not resolve", async ({
+    fetch,
+    service,
+  }) => {
     fetch.mockRejectedValueOnce(
-      Object.assign(
-        new HttpNetworkError({
-          method: "HEAD",
-          url: "https://example.com",
-          cause: {
-            code: "ENOTFOUND",
-          },
-        }),
-      ),
+      new HttpNetworkError({
+        method: "HEAD",
+        url: "https://example.com",
+        cause: {
+          code: "ENOTFOUND",
+        },
+      }),
     )
 
     const result = await service.checkState("https://example.com")
 
-    expect(result.isUp).toBe(false)
-    expect(result.statusCode).toBeNull()
-    expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.errorCode).toBe("ENOTFOUND")
-    expect(result.checkedAt).toBeTypeOf("string")
+    expect(result).toEqual(expect.schemaMatching(checkStateResultSchema))
+    expect(result).toMatchObject({
+      isUp: false,
+      statusCode: null,
+      errorCode: "ENOTFOUND",
+    })
   })
 
-  it("returns 'down' when connection refuses", async () => {
+  test("returns 'down' when connection refuses", async ({ fetch, service }) => {
     fetch.mockRejectedValueOnce(
-      Object.assign(
-        new HttpNetworkError({
-          method: "HEAD",
-          url: "https://example.com",
-          cause: {
-            code: "ECONNREFUSED",
-          },
-        }),
-      ),
+      new HttpNetworkError({
+        method: "HEAD",
+        url: "https://example.com",
+        cause: {
+          code: "ECONNREFUSED",
+        },
+      }),
     )
 
     const result = await service.checkState("https://example.com")
 
-    expect(result.isUp).toBe(false)
-    expect(result.statusCode).toBeNull()
-    expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.errorCode).toBe("ECONNREFUSED")
-    expect(result.checkedAt).toBeTypeOf("string")
+    expect(result).toEqual(expect.schemaMatching(checkStateResultSchema))
+    expect(result).toMatchObject({
+      isUp: false,
+      statusCode: null,
+      errorCode: "ECONNREFUSED",
+    })
+  })
+
+  test("returns 'TIMEOUT' when the page takes more than 10s to answer", async ({
+    fetch,
+    service,
+    onTestFinished,
+  }) => {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    // Like the real fetch: never settles until the request signal aborts
+    fetch.mockImplementationOnce(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(init.signal?.reason),
+          )
+        }),
+    )
+
+    const pending = service.checkState("https://example.com")
+    await vi.advanceTimersByTimeAsync(10_000)
+    const result = await pending
+
+    expect(result).toEqual(expect.schemaMatching(checkStateResultSchema))
+    expect(result).toMatchObject({
+      isUp: false,
+      statusCode: null,
+      errorCode: "TIMEOUT",
+    })
   })
 })

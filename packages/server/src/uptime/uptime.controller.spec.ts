@@ -1,28 +1,30 @@
-import { Test, TestingModule } from "@nestjs/testing"
-import { CheckStateDto } from "./dto/check-state.dto.js"
+import { Test } from "@nestjs/testing"
+import { test as baseTest } from "vitest"
+import { CheckStateResultDto } from "./dto/check-state.dto.js"
 import { UptimeController } from "./uptime.controller.js"
 import { UptimeService } from "./uptime.service.js"
 
-describe("UptimeController", () => {
-  let controller: UptimeController
-  const checkState = vi.fn<UptimeService["checkState"]>()
-
-  beforeEach(async () => {
-    checkState.mockReset()
-    const module: TestingModule = await Test.createTestingModule({
+const test = baseTest
+  .extend("checkState", () => vi.fn<UptimeService["checkState"]>())
+  .extend("controller", async ({ checkState }) => {
+    const module = await Test.createTestingModule({
       controllers: [UptimeController],
       providers: [{ provide: UptimeService, useValue: { checkState } }],
     }).compile()
 
-    controller = module.get<UptimeController>(UptimeController)
+    return module.get(UptimeController)
   })
 
-  it("should be defined", () => {
+describe("UptimeController", () => {
+  test("should be defined", ({ controller }) => {
     expect(controller).toBeDefined()
   })
 
-  it("delegates the url to UptimeService.checkState", async () => {
-    const state: CheckStateDto = {
+  test("delegates the url to UptimeService.checkState", async ({
+    checkState,
+    controller,
+  }) => {
+    const state: CheckStateResultDto = {
       isUp: true,
       statusCode: 200,
       responseTimeMs: 42,
@@ -37,8 +39,11 @@ describe("UptimeController", () => {
     expect(result).toEqual(state)
   })
 
-  it("returns the 'down' state from the service", async () => {
-    const state: CheckStateDto = {
+  test("returns the 'down' state from the service", async ({
+    checkState,
+    controller,
+  }) => {
+    const state: CheckStateResultDto = {
       isUp: false,
       statusCode: null,
       responseTimeMs: 10,

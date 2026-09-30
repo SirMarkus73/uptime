@@ -2,10 +2,10 @@ import { Controller, Get, Query } from "@nestjs/common"
 import { ApiOkResponse, ApiOperation } from "@nestjs/swagger"
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth"
 import {
-  CheckStateDto,
   type CheckStateQueryDto,
+  CheckStateResultDto,
   checkStateQuerySchema,
-  checkStateSchema,
+  checkStateResultSchema,
 } from "./dto/check-state.dto.js"
 import { UptimeService } from "./uptime.service.js"
 
@@ -15,13 +15,13 @@ export class UptimeController {
 
   @ApiOperation({ operationId: "checkUrl" })
   @ApiOkResponse({
-    standardSchema: checkStateSchema,
+    standardSchema: checkStateResultSchema,
   })
   @AllowAnonymous()
   @Get()
   async checkUrl(
     @Query({ schema: checkStateQuerySchema }) params: CheckStateQueryDto,
-  ): Promise<CheckStateDto> {
+  ): Promise<CheckStateResultDto> {
     return await this.uptimeService.checkState(params.url)
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common"
+import { Body, Controller, Get, Param, Post } from "@nestjs/common"
 import { ApiCreatedResponse, ApiOkResponse } from "@nestjs/swagger"
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth"
 import { ApiAuthenticationErrors } from "../shared/api-authentication-errors.js"
@@ -47,7 +47,7 @@ export class MonitorsController {
   @ApiCreatedResponse({ standardSchema: runMonitorResultSchema })
   @Post(":monitorId/run")
   async runMonitor(
-    @Query("monitorId") monitorId: string,
+    @Param("monitorId") monitorId: string,
   ): Promise<RunMonitorResultDto> {
     return this.monitorService.runMonitor({ id: monitorId })
   }
@@ -56,7 +56,7 @@ export class MonitorsController {
   @ApiOkResponse({ standardSchema: getMonitorResultSchema })
   @Get(":monitorId")
   async getMonitor(
-    @Query("monitorId") monitorId: string,
+    @Param("monitorId") monitorId: string,
   ): Promise<GetMonitorResultDto> {
     return this.monitorService.getMonitor({ id: monitorId })
   }

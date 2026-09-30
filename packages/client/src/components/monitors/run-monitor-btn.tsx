@@ -14,7 +14,7 @@ export function RunMonitorButton({ monitorId }: RunMonitorButtonProps) {
   const getMonitorQueryKey = $api.queryOptions(
     "get",
     "/api/monitors/{monitorId}",
-    { params: { query: { monitorId } } },
+    { params: { path: { monitorId } } },
   ).queryKey
 
   const queryClient = useQueryClient()
@@ -33,7 +33,7 @@ export function RunMonitorButton({ monitorId }: RunMonitorButtonProps) {
   const handleClick = () => {
     mutate({
       params: {
-        query: {
+        path: {
           monitorId,
         },
       },

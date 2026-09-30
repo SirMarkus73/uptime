@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { selectCheckSchema } from "../../db/schema/check-schema.js"
 
-export const checkStateSchema = selectCheckSchema.pick({
+export const checkStateResultSchema = selectCheckSchema.pick({
   checkedAt: true,
   errorCode: true,
   isUp: true,
@@ -16,5 +16,5 @@ export const checkStateQuerySchema = z.object({
   }),
 })
 
-export type CheckStateDto = z.infer<typeof checkStateSchema>
+export type CheckStateResultDto = z.infer<typeof checkStateResultSchema>
 export type CheckStateQueryDto = z.infer<typeof checkStateQuerySchema>

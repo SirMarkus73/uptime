@@ -370,11 +370,11 @@ export interface operations {
     };
     MonitorsController_runMonitor: {
         parameters: {
-            query: {
+            query?: never;
+            header?: never;
+            path: {
                 monitorId: string;
             };
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -449,11 +449,11 @@ export interface operations {
     };
     MonitorsController_getMonitor: {
         parameters: {
-            query: {
+            query?: never;
+            header?: never;
+            path: {
                 monitorId: string;
             };
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;
