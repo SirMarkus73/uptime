@@ -1,9 +1,12 @@
 import { useNavigate } from "@tanstack/react-router"
-import type { SubmitEventHandler } from "react"
+import { type SubmitEventHandler, useState } from "react"
 import { authClient } from "#/lib/authClient"
+import { AuthCard, AuthField, AuthLink, AuthSubmit } from "./auth-form"
 
 export function Login() {
   const navigate = useNavigate()
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string>()
 
   const handleSubmit: SubmitEventHandler = async (e) => {
     e.preventDefault()
@@ -15,32 +18,51 @@ export function Login() {
 
     if (!email || !password) return
 
-    await authClient.signIn.email({
+    setIsPending(true)
+    setError(undefined)
+
+    const { error } = await authClient.signIn.email({
       email,
       password,
     })
+
+    setIsPending(false)
+
+    if (error) {
+      setError(error.message ?? "No se ha podido iniciar sesión")
+      return
+    }
 
     navigate({ to: "/" })
   }
 
   return (
-    <main className="bg-neutral-900 min-h-screen text-white p-5 grid place-items-center">
-      <form
-        onSubmit={handleSubmit}
-        className="grid gap-2 border border-neutral-400 rounded-lg p-4 *:flex *:gap-2 *:*:border *:*:rounded-lg"
-      >
-        <label>
-          Correo electrónico
-          <input id="email" name="email" />
-        </label>
-
-        <label>
-          Contraseña
-          <input id="password" name="password" />
-        </label>
-
-        <button type="submit">Enviar</button>
-      </form>
-    </main>
+    <AuthCard
+      title="Iniciar sesión"
+      description="Accede para gestionar tus monitores"
+      onSubmit={handleSubmit}
+      error={error}
+      footer={
+        <>
+          ¿No tienes cuenta? <AuthLink to="/register">Regístrate</AuthLink>
+        </>
+      }
+    >
+      <AuthField
+        label="Correo electrónico"
+        name="email"
+        type="email"
+        placeholder="tu@correo.com"
+        autoComplete="email"
+      />
+      <AuthField
+        label="Contraseña"
+        name="password"
+        type="password"
+        placeholder="••••••••"
+        autoComplete="current-password"
+      />
+      <AuthSubmit isPending={isPending}>Entrar</AuthSubmit>
+    </AuthCard>
   )
 }

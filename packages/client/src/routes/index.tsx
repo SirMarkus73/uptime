@@ -20,7 +20,7 @@ function Home() {
     )
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.12),transparent_60%)]">
+    <main className="flex-1 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.12),transparent_60%)]">
       <div className="mx-auto flex max-w-xl flex-col gap-8 px-4 py-20">
         <header className="text-center">
           <h1 className="text-4xl font-semibold tracking-tight">Uptime</h1>

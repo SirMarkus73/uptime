@@ -1,9 +1,12 @@
 import { useNavigate } from "@tanstack/react-router"
-import type { SubmitEventHandler } from "react"
+import { type SubmitEventHandler, useState } from "react"
 import { authClient } from "#/lib/authClient"
+import { AuthCard, AuthField, AuthLink, AuthSubmit } from "./auth-form"
 
 export function Register() {
   const navigate = useNavigate()
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string>()
 
   const handleSubmit: SubmitEventHandler = async (e) => {
     e.preventDefault()
@@ -16,38 +19,58 @@ export function Register() {
 
     if (!name || !email || !password) return
 
-    await authClient.signUp.email({
+    setIsPending(true)
+    setError(undefined)
+
+    const { error } = await authClient.signUp.email({
       email,
       name,
       password,
     })
 
+    setIsPending(false)
+
+    if (error) {
+      setError(error.message ?? "No se ha podido crear la cuenta")
+      return
+    }
+
     navigate({ to: "/" })
   }
 
   return (
-    <main className="bg-neutral-900 min-h-screen text-white p-5 grid place-items-center">
-      <form
-        onSubmit={handleSubmit}
-        className="grid gap-2 border border-neutral-400 rounded-lg p-4 *:flex *:gap-2 *:*:border *:*:rounded-lg"
-      >
-        <label>
-          Nombre:
-          <input id="name" name="name" />
-        </label>
-
-        <label>
-          Correo electrónico:
-          <input id="email" name="email" />
-        </label>
-
-        <label>
-          Contraseña:
-          <input id="password" name="password" />
-        </label>
-
-        <button type="submit">Enviar</button>
-      </form>
-    </main>
+    <AuthCard
+      title="Crear cuenta"
+      description="Regístrate para empezar a monitorizar tus webs"
+      onSubmit={handleSubmit}
+      error={error}
+      footer={
+        <>
+          ¿Ya tienes cuenta? <AuthLink to="/login">Inicia sesión</AuthLink>
+        </>
+      }
+    >
+      <AuthField
+        label="Nombre"
+        name="name"
+        placeholder="Tu nombre"
+        autoComplete="name"
+      />
+      <AuthField
+        label="Correo electrónico"
+        name="email"
+        type="email"
+        placeholder="tu@correo.com"
+        autoComplete="email"
+      />
+      <AuthField
+        label="Contraseña"
+        name="password"
+        type="password"
+        placeholder="••••••••"
+        autoComplete="new-password"
+      />
+      <AuthSubmit isPending={isPending}>Crear cuenta</AuthSubmit>
+    </AuthCard>
   )
 }
