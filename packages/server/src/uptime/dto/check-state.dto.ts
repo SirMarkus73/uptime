@@ -1,18 +1,12 @@
 import { z } from "zod"
+import { selectCheckSchema } from "../../db/schema/check-schema.js"
 
-export const checkStateSchema = z.object({
-  isUp: z.boolean(),
-  statusCode: z.number().nullable().meta({
-    description: "May be null when a fetch error has occurred",
-    example: 200,
-  }),
-  responseTimeMs: z.number().meta({
-    example: 214.22672000000057,
-  }),
-  fetchError: z.string().nullable().meta({
-    example: null,
-  }),
-  checkedAt: z.iso.datetime(),
+export const checkStateSchema = selectCheckSchema.pick({
+  checkedAt: true,
+  errorCode: true,
+  isUp: true,
+  responseTimeMs: true,
+  statusCode: true,
 })
 
 export const checkStateQuerySchema = z.object({

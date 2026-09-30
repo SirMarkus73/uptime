@@ -27,7 +27,7 @@ export class UptimeService {
         isUp: response.status < 400,
         statusCode: response.status,
         responseTimeMs: end - start,
-        fetchError: null,
+        errorCode: null,
         checkedAt: new Date().toISOString(),
       }
     } catch (error) {
@@ -61,7 +61,7 @@ export class UptimeService {
         isUp: false,
         statusCode: null,
         responseTimeMs: end - start,
-        fetchError: errorCode,
+        errorCode,
         checkedAt: new Date().toISOString(),
       }
     }

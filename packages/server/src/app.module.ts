@@ -10,6 +10,7 @@ import { AuthModule } from "@thallesp/nestjs-better-auth"
 import { AppController } from "./app.controller.js"
 import { AppService } from "./app.service.js"
 import { auth } from "./lib/auth.js"
+import { MonitorsModule } from "./monitors/monitors.module.js"
 import { UptimeModule } from "./uptime/uptime.module.js"
 
 @Module({
@@ -28,6 +29,7 @@ import { UptimeModule } from "./uptime/uptime.module.js"
     }),
     AuthModule.forRoot({ auth }),
     UptimeModule,
+    MonitorsModule,
   ],
   controllers: [AppController],
   providers: [

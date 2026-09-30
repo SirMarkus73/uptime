@@ -26,7 +26,7 @@ describe("UptimeController", () => {
       isUp: true,
       statusCode: 200,
       responseTimeMs: 42,
-      fetchError: null,
+      errorCode: null,
       checkedAt: new Date().toISOString(),
     }
     checkState.mockResolvedValueOnce(state)
@@ -42,7 +42,7 @@ describe("UptimeController", () => {
       isUp: false,
       statusCode: null,
       responseTimeMs: 10,
-      fetchError: "ENOTFOUND",
+      errorCode: "ENOTFOUND",
       checkedAt: new Date().toISOString(),
     }
     checkState.mockResolvedValueOnce(state)

@@ -28,7 +28,7 @@ describe("UptimeService", () => {
     expect(result.isUp).toBe(true)
     expect(result.statusCode).toBe(200)
     expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.fetchError).toBeNull()
+    expect(result.errorCode).toBeNull()
     expect(result.checkedAt).toBeTypeOf("string")
   })
 
@@ -40,7 +40,7 @@ describe("UptimeService", () => {
     expect(result.isUp).toBe(false)
     expect(result.statusCode).toBe(500)
     expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.fetchError).toBeNull()
+    expect(result.errorCode).toBeNull()
     expect(result.checkedAt).toBeTypeOf("string")
   })
 
@@ -62,7 +62,7 @@ describe("UptimeService", () => {
     expect(result.isUp).toBe(false)
     expect(result.statusCode).toBeNull()
     expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.fetchError).toBe("ENOTFOUND")
+    expect(result.errorCode).toBe("ENOTFOUND")
     expect(result.checkedAt).toBeTypeOf("string")
   })
 
@@ -84,7 +84,7 @@ describe("UptimeService", () => {
     expect(result.isUp).toBe(false)
     expect(result.statusCode).toBeNull()
     expect(result.responseTimeMs).toBeTypeOf("number")
-    expect(result.fetchError).toBe("ECONNREFUSED")
+    expect(result.errorCode).toBe("ECONNREFUSED")
     expect(result.checkedAt).toBeTypeOf("string")
   })
 })

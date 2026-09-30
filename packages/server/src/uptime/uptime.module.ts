@@ -7,5 +7,6 @@ import { UptimeService } from "./uptime.service.js"
   imports: [HttpClientModule.register()],
   controllers: [UptimeController],
   providers: [UptimeService],
+  exports: [UptimeService],
 })
 export class UptimeModule {}

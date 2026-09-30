@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
+import { Monitors } from "#/components/monitors/monitors"
 import { authClient } from "#/lib/authClient"
 import { $api } from "#/lib/fetchClient"
 
@@ -126,14 +127,16 @@ function Home() {
               />
             </dl>
 
-            {data.fetchError && (
+            {data.errorCode && (
               <p className="border-t border-neutral-800 px-5 py-3 font-mono text-xs text-red-300">
-                {data.fetchError}
+                {data.errorCode}
               </p>
             )}
           </article>
         )}
       </div>
+
+      <Monitors />
     </main>
   )
 }
