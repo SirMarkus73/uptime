@@ -24,11 +24,6 @@ function Home() {
       <div className="mx-auto flex max-w-xl flex-col gap-8 px-4 py-20">
         <header className="text-center">
           <h1 className="font-dot text-5xl font-bold tracking-tight">Uptime</h1>
-          <p className="mt-2 text-neutral-400">
-            {sessionData?.user
-              ? `Hola ${sessionData.user.name} comprueba si una web está disponible`
-              : "Comprueba si una web está disponible"}
-          </p>
         </header>
 
         <form
