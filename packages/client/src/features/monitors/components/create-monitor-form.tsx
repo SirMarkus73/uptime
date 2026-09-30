@@ -54,11 +54,7 @@ export function CreateMonitorForm() {
           </ul>
         </Alert>
       )}
-      <Button
-        type="submit"
-        disabled={error?.statusCode === 429}
-        className="self-end"
-      >
+      <Button type="submit" className="self-end">
         {!isSuccess && !isError && !isPending && "Crear monitor"}
         {isPending && "Cargando..."}
 

@@ -1,9 +1,9 @@
-import type { ComponentProps } from "react"
+import { Button as BaseButton } from "@base-ui/react/button"
 import { tv, type VariantProps } from "tailwind-variants"
 
 // También se usa para dar aspecto de botón a los <Link> del router.
 export const buttonStyles = tv({
-  base: "rounded-lg font-medium transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60",
+  base: "rounded-lg font-medium transition active:scale-95 data-disabled:cursor-not-allowed data-disabled:opacity-60",
   variants: {
     variant: {
       primary: "bg-accent text-neutral-950 hover:bg-accent-hover",
@@ -23,7 +23,8 @@ export const buttonStyles = tv({
   },
 })
 
-type ButtonProps = ComponentProps<"button"> & VariantProps<typeof buttonStyles>
+type ButtonProps = Omit<BaseButton.Props, "className"> &
+  VariantProps<typeof buttonStyles> & { className?: string }
 
 export function Button({
   variant,
@@ -33,7 +34,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-    <button
+    <BaseButton
       type={type}
       className={buttonStyles({ variant, size, className })}
       {...props}

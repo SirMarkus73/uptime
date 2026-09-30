@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@base-ui/react": "1.8.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-query": "5.104.0",
