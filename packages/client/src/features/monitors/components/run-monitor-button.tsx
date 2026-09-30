@@ -6,16 +6,10 @@ type RunMonitorButtonProps = {
 }
 
 export function RunMonitorButton({ monitorId }: RunMonitorButtonProps) {
-  const { mutate, isPending } = useRunMonitor()
+  const { mutate: runMonitor, isPending } = useRunMonitor(monitorId)
 
   const handleClick = () => {
-    mutate({
-      params: {
-        path: {
-          monitorId,
-        },
-      },
-    })
+    runMonitor()
   }
 
   return (

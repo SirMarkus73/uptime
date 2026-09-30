@@ -1,9 +1,16 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { StatusDot } from "#/core/design-system/status-dot"
-import { useMonitors } from "../api/queries"
+import { monitorQueryOptions, useMonitors } from "../api/queries"
+import type { Monitor } from "../interfaces/monitor"
 import { RunMonitorButton } from "./run-monitor-button"
 
 export function MonitorList() {
   const { data } = useMonitors()
+  const queryClient = useQueryClient()
+
+  const ensureMonitorLoaded = (monitorId: Monitor["id"]) => () => {
+    queryClient.query(monitorQueryOptions(monitorId))
+  }
 
   return (
     <ul className="flex flex-col divide-y divide-neutral-800 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 shadow-xl shadow-black/40 empty:hidden">
@@ -11,6 +18,7 @@ export function MonitorList() {
         <li
           className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-neutral-800/40"
           key={monitor.id}
+          onMouseEnter={ensureMonitorLoaded(monitor.id)}
         >
           <StatusDot
             status={
