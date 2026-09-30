@@ -16,7 +16,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
+    <div className="bg-dots flex min-h-screen flex-col text-neutral-100">
       <Header />
       <Outlet />
       <TanStackDevtools

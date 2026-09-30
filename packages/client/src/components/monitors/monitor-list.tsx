@@ -20,14 +20,14 @@ export function MonitorList() {
           <span className="relative flex size-2.5 shrink-0">
             {monitor.isUp === true && (
               <>
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-up opacity-75" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-up" />
               </>
             )}
             {monitor.isUp === false && (
               <>
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-rose-400" />
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-down opacity-75" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-down" />
               </>
             )}
             {monitor.isUp === null && (

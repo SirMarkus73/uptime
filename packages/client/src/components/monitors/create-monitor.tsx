@@ -54,7 +54,7 @@ export function CreateMonitor() {
             name="monitor-name"
             placeholder="Mi web"
             autoComplete="off"
-            className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm font-normal normal-case tracking-normal text-neutral-100 placeholder:text-neutral-600 outline-none transition-colors focus:border-emerald-500/60"
+            className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm font-normal normal-case tracking-normal text-neutral-100 placeholder:text-neutral-600 outline-none transition-colors focus:border-neutral-400"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium uppercase tracking-wider text-neutral-500">
@@ -64,7 +64,7 @@ export function CreateMonitor() {
             name="monitor-url"
             placeholder="https://www.example.com"
             autoComplete="off"
-            className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 font-mono text-sm font-normal normal-case tracking-normal text-neutral-100 placeholder:text-neutral-600 outline-none transition-colors focus:border-emerald-500/60"
+            className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 font-mono text-sm font-normal normal-case tracking-normal text-neutral-100 placeholder:text-neutral-600 outline-none transition-colors focus:border-neutral-400"
           />
         </label>
       </div>
@@ -78,7 +78,7 @@ export function CreateMonitor() {
       <button
         type="submit"
         disabled={error?.statusCode === 429}
-        className="self-end rounded-lg bg-emerald-500 px-4 py-2 font-medium text-neutral-950 transition hover:bg-emerald-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+        className="self-end rounded-lg bg-accent px-4 py-2 font-medium text-neutral-950 transition hover:bg-accent-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {!isSuccess && !isError && !isPending && "Crear monitor"}
         {isPending && "Cargando..."}

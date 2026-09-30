@@ -19,10 +19,12 @@ export function AuthCard({
   children,
 }: AuthCardProps) {
   return (
-    <main className="flex flex-1 items-center justify-center bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.12),transparent_60%)] px-4 py-16">
+    <main className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="font-dot text-4xl font-bold tracking-tight">
+            {title}
+          </h1>
           <p className="mt-2 text-sm text-neutral-400">{description}</p>
         </div>
 
@@ -58,7 +60,7 @@ export function AuthField({ label, name, ...props }: AuthFieldProps) {
         id={name}
         name={name}
         required
-        className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm font-normal normal-case tracking-normal text-neutral-100 placeholder:text-neutral-600 outline-none transition-colors focus:border-emerald-500/60"
+        className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm font-normal normal-case tracking-normal text-neutral-100 placeholder:text-neutral-600 outline-none transition-colors focus:border-neutral-400"
         {...props}
       />
     </label>
@@ -76,7 +78,7 @@ export function AuthSubmit({
     <button
       type="submit"
       disabled={isPending}
-      className="mt-2 rounded-lg bg-emerald-500 px-4 py-2 font-medium text-neutral-950 transition hover:bg-emerald-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+      className="mt-2 rounded-lg bg-accent px-4 py-2 font-medium text-neutral-950 transition hover:bg-accent-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isPending ? "Cargando…" : children}
     </button>
@@ -86,7 +88,7 @@ export function AuthSubmit({
 export function AuthLink(props: ComponentProps<typeof Link>) {
   return (
     <Link
-      className="font-medium text-emerald-400 transition-colors hover:text-emerald-300"
+      className="font-medium text-neutral-100 underline decoration-dotted underline-offset-4 transition-colors hover:text-white"
       {...props}
     />
   )

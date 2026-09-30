@@ -24,11 +24,11 @@ export function Header() {
       <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
         <Link
           to="/"
-          className="flex items-center gap-2 font-semibold tracking-tight text-neutral-100"
+          className="flex items-center gap-2 font-dot text-xl font-bold tracking-tight text-neutral-100"
         >
           <span className="relative flex size-2.5">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-neutral-100 opacity-75" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-neutral-100" />
           </span>
           Uptime
         </Link>
@@ -48,7 +48,7 @@ export function Header() {
           ) : sessionData?.user ? (
             <>
               <span className="ml-1 flex items-center gap-2 px-2 text-sm text-neutral-300">
-                <span className="grid size-7 place-items-center rounded-full bg-emerald-500/15 text-xs font-semibold uppercase text-emerald-400">
+                <span className="grid size-7 place-items-center rounded-full bg-white/5 font-dot text-sm font-bold uppercase text-neutral-100 ring-1 ring-white/15">
                   {sessionData.user.name.charAt(0)}
                 </span>
                 <span className="max-w-40 truncate">
@@ -76,7 +76,7 @@ export function Header() {
               </Link>
               <Link
                 to="/register"
-                className="ml-1 rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:bg-emerald-400 active:scale-95"
+                className="ml-1 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:bg-accent-hover active:scale-95"
               >
                 Registrarse
               </Link>

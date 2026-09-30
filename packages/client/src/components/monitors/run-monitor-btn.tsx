@@ -43,7 +43,7 @@ export function RunMonitorButton({ monitorId }: RunMonitorButtonProps) {
   return (
     <button
       type="button"
-      className="shrink-0 rounded-lg border border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:border-emerald-500/60 hover:text-emerald-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+      className="shrink-0 rounded-lg border border-neutral-700 px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:border-neutral-400 hover:text-neutral-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
       disabled={isPending}
       onClick={handleClick}
     >

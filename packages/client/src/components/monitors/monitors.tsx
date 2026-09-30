@@ -8,7 +8,7 @@ export function Monitors() {
 
   return (
     <section className="mx-auto flex max-w-xl flex-col gap-4 px-4 pb-20">
-      <h2 className="text-sm font-medium uppercase tracking-wider text-neutral-500">
+      <h2 className="font-dot text-lg font-bold uppercase tracking-wider text-neutral-400">
         Monitores
       </h2>
       {isPending ? (
@@ -27,8 +27,8 @@ export function Monitors() {
 
 function LockedMonitors() {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/50 px-6 py-12 text-center">
-      <span className="grid size-14 place-items-center rounded-full bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-dotted border-neutral-800 bg-neutral-900/50 px-6 py-12 text-center">
+      <span className="grid size-14 place-items-center rounded-full bg-white/5 text-neutral-100 ring-1 ring-white/15">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -56,7 +56,7 @@ function LockedMonitors() {
       <div className="flex items-center gap-2">
         <Link
           to="/login"
-          className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-neutral-950 transition hover:bg-emerald-400 active:scale-95"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-neutral-950 transition hover:bg-accent-hover active:scale-95"
         >
           Iniciar sesión
         </Link>

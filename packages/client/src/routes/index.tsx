@@ -20,10 +20,10 @@ function Home() {
     )
 
   return (
-    <main className="flex-1 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.12),transparent_60%)]">
+    <main className="flex-1">
       <div className="mx-auto flex max-w-xl flex-col gap-8 px-4 py-20">
         <header className="text-center">
-          <h1 className="text-4xl font-semibold tracking-tight">Uptime</h1>
+          <h1 className="font-dot text-5xl font-bold tracking-tight">Uptime</h1>
           <p className="mt-2 text-neutral-400">
             {sessionData?.user
               ? `Hola ${sessionData.user.name} comprueba si una web está disponible`
@@ -32,7 +32,7 @@ function Home() {
         </header>
 
         <form
-          className="flex gap-2 rounded-xl border border-neutral-800 bg-neutral-900/80 p-2 shadow-lg shadow-black/30 focus-within:border-emerald-500/60 transition-colors"
+          className="flex gap-2 rounded-xl border border-neutral-800 bg-neutral-900/80 p-2 shadow-lg shadow-black/30 focus-within:border-neutral-400 transition-colors"
           onSubmit={(e) => {
             e.preventDefault()
 
@@ -59,7 +59,7 @@ function Home() {
           <button
             type="submit"
             disabled={isFetching}
-            className="rounded-lg bg-emerald-500 px-4 py-2 font-medium text-neutral-950 transition hover:bg-emerald-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-accent px-4 py-2 font-medium text-neutral-950 transition hover:bg-accent-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isFetching ? "Comprobando…" : "Comprobar"}
           </button>
@@ -94,20 +94,18 @@ function Home() {
               </h2>
               <span
                 className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-                  data.isUp
-                    ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-red-500/15 text-red-400"
+                  data.isUp ? "bg-up/15 text-up" : "bg-down/15 text-down"
                 }`}
               >
                 <span className="relative flex size-2">
                   <span
                     className={`absolute inline-flex size-full animate-ping rounded-full opacity-75 ${
-                      data.isUp ? "bg-emerald-400" : "bg-red-400"
+                      data.isUp ? "bg-up" : "bg-down"
                     }`}
                   />
                   <span
                     className={`relative inline-flex size-2 rounded-full ${
-                      data.isUp ? "bg-emerald-400" : "bg-red-400"
+                      data.isUp ? "bg-up" : "bg-down"
                     }`}
                   />
                 </span>
@@ -147,7 +145,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <dt className="text-xs uppercase tracking-wider text-neutral-500">
         {label}
       </dt>
-      <dd className="mt-1 text-lg font-semibold tabular-nums">{value}</dd>
+      <dd className="mt-1 font-dot text-xl font-bold tabular-nums">{value}</dd>
     </div>
   )
 }

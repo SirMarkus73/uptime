@@ -1,5 +1,32 @@
-
 @import "tailwindcss";
+
+@theme {
+  --font-dot: "Doto", ui-monospace, monospace;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --color-accent: #fafafa;
+  --color-accent-hover: #ffffff;
+
+  /* Estado de las webs: funcional / caída */
+  --color-up: var(--color-lime-400);
+  --color-down: var(--color-red-500);
+}
+
+/* Rejilla de puntos fija al viewport que se desvanece hacia abajo */
+@utility bg-dots {
+  background-color: var(--color-neutral-950);
+  background-image:
+    radial-gradient(
+      ellipse 80% 70% at top,
+      transparent 0%,
+      var(--color-neutral-950) 100%
+    ),
+    radial-gradient(circle, rgb(255 255 255 / 0.14) 1px, transparent 1.5px);
+  background-size:
+    100% 100%,
+    16px 16px;
+  background-attachment: fixed;
+}
 
 * {
   box-sizing: border-box;
@@ -13,5 +40,6 @@ body,
 
 body {
   margin: 0;
+  font-family: var(--font-mono);
+  background-color: var(--color-neutral-950);
 }
-
