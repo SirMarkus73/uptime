@@ -3,6 +3,13 @@ import {
   type ToastManagerAddOptions,
   type ToastManagerUpdateOptions,
 } from "@base-ui/react/toast"
+import {
+  CircleAlert,
+  CircleCheck,
+  LoaderCircle,
+  type LucideIcon,
+  X,
+} from "lucide-react"
 import type { ReactNode } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 
@@ -89,16 +96,11 @@ export const toast = {
     manager.promise(promise, options),
 }
 
-const icons: Record<ToastType, ReactNode> = {
+const icons: Record<ToastType, LucideIcon | null> = {
   default: null,
-  loading: (
-    <>
-      <circle cx="8" cy="8" r="6" opacity="0.25" />
-      <path d="M14 8a6 6 0 0 0-6-6" />
-    </>
-  ),
-  success: <path d="M3.5 8.5l3 3 6-7" />,
-  error: <path d="M8 4.5v4M8 11.5v.01" />,
+  loading: LoaderCircle,
+  success: CircleCheck,
+  error: CircleAlert,
 }
 
 function ToastList() {
@@ -107,6 +109,7 @@ function ToastList() {
   return toasts.map((t) => {
     const type = isToastType(t.type) ? t.type : "default"
     const styles = toastStyles({ type })
+    const Icon = icons[type]
 
     return (
       <Toast.Root
@@ -116,36 +119,13 @@ function ToastList() {
         className={styles.root()}
       >
         <Toast.Content className={styles.content()}>
-          {icons[type] && (
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 16 16"
-              className={styles.icon()}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {icons[type]}
-            </svg>
-          )}
+          {Icon && <Icon aria-hidden="true" className={styles.icon()} />}
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <Toast.Title className={styles.title()} />
             <Toast.Description className={styles.description()} />
           </div>
           <Toast.Close aria-label="Cerrar" className={styles.close()}>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 16 16"
-              className="size-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            >
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
+            <X aria-hidden="true" className="size-4" />
           </Toast.Close>
         </Toast.Content>
       </Toast.Root>
