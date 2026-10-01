@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "vitest.explorer",
-        "biomejs.biome"
+        "biomejs.biome",
+        "vercel.turbo-vsc"
     ]
 }

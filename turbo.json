@@ -3,7 +3,17 @@
   "ui": "tui",
   "tasks": {
     "build": {
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"]
+    },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
+    "check-types": {
+      "dependsOn": ["transit"]
+    },
+    "test": {
+      "dependsOn": ["transit"]
     },
     "dev": {
       "persistent": true,

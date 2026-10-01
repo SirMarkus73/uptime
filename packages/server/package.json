@@ -10,6 +10,7 @@
     "build": "nest build",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "check-types": "tsc --noEmit",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "dev": "nest start --watch",
