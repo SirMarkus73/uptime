@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/SirMarkus73/uptime/compare/v1.0.0...v1.1.0) (2026-10-01)
+
+
+### Features
+
+* **monitors:** Permitir eliminar monitores ([5a7a9de](https://github.com/SirMarkus73/uptime/commit/5a7a9de4f3111a8b8e8608e7a511e0d8173e76d4))
+
 # 1.0.0 (2026-10-01)
 
 
