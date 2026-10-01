@@ -1,8 +1,13 @@
 {
   "name": "uptime",
   "version": "1.0.0",
+  "private": true,
   "description": "",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SirMarkus73/uptime.git"
+  },
   "scripts": {
     "lint": "biome lint",
     "format": "biome format",
@@ -13,14 +18,31 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "test": "turbo test",
-    "start": "pnpm run -F ./packages/server start"
+    "start": "pnpm run -F ./packages/server start",
+    "prepare": "husky",
+    "commit": "cz",
+    "release": "semantic-release"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "packageManager": "pnpm@12.8.1",
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/cz-commitlint"
+    }
+  },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@commitlint/cz-commitlint": "^21.2.3",
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
+    "commitizen": "^4.3.2",
+    "husky": "^9.1.7",
+    "inquirer": "^12.11.1",
+    "semantic-release": "^25.0.9",
     "turbo": "2.11.5"
   }
 }
