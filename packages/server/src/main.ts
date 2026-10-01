@@ -12,7 +12,7 @@ import { AppModule } from "./app.module.js"
 const API_PREFIX = "api"
 
 const CLIENT_OPENAPI_PATH = new URL(
-  "../../client/src/shared/api/api-schema.ts",
+  "../../shared/src/api/api-schema.ts",
   import.meta.url,
 )
 const CLIENT_DIST_PATH = fileURLToPath(
