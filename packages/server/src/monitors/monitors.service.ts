@@ -76,6 +76,9 @@ export class MonitorsService {
         ownedBy: true,
         webPage: true,
       },
+      orderBy: {
+        createdAt: "desc",
+      },
       where: {
         ownedBy,
       },

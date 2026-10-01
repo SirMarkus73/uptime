@@ -3,9 +3,13 @@ import { useRunMonitor } from "../api/mutations"
 
 type RunMonitorButtonProps = {
   monitorId: string
+  disabled?: boolean
 }
 
-export function RunMonitorButton({ monitorId }: RunMonitorButtonProps) {
+export function RunMonitorButton({
+  monitorId,
+  disabled = false,
+}: RunMonitorButtonProps) {
   const { mutate: runMonitor, isPending } = useRunMonitor(monitorId)
 
   const handleClick = () => {
@@ -17,7 +21,7 @@ export function RunMonitorButton({ monitorId }: RunMonitorButtonProps) {
       variant="secondary"
       size="sm"
       className="shrink-0"
-      disabled={isPending}
+      disabled={disabled || isPending}
       onClick={handleClick}
     >
       Run

@@ -8,6 +8,7 @@ import { apiReference } from "@scalar/nestjs-api-reference"
 import type { NextFunction, Request, Response } from "express"
 import openapiTS, { astToString } from "openapi-typescript"
 import { AppModule } from "./app.module.js"
+import { CONFIG } from "./config/configuration.js"
 
 const API_PREFIX = "api"
 
@@ -66,7 +67,7 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config)
 
-  if (process.env.NODE_ENV !== "production") {
+  if (CONFIG.NODE_ENV !== "production") {
     const ast = await openapiTS(JSON.stringify(document))
     const contents = astToString(ast)
 
@@ -98,6 +99,6 @@ async function bootstrap() {
 
   app.useGlobalPipes(new StandardSchemaValidationPipe())
 
-  await app.listen(process.env.PORT ?? 3000)
+  await app.listen(CONFIG.PORT ?? 3000)
 }
 await bootstrap()
