@@ -73,7 +73,7 @@ export interface paths {
         get: operations["MonitorsController_getMonitor"];
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["MonitorsController_deleteMonitor"];
         options?: never;
         head?: never;
         patch?: never;
@@ -507,6 +507,73 @@ export interface operations {
                         }[];
                     };
                 };
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 400;
+                        /**
+                         * @example [
+                         *       "url must be a valid URL",
+                         *       "name should not be empty"
+                         *     ]
+                         */
+                        message?: string[];
+                        /** @example Bad Request */
+                        error?: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Unauthorized */
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 401;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 429;
+                        /** @example ThrottlerException: Too Many Requests */
+                        message?: string;
+                    };
+                };
+            };
+        };
+    };
+    MonitorsController_deleteMonitor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                monitorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation error */
             400: {

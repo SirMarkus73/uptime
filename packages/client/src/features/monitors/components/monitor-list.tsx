@@ -4,6 +4,7 @@ import { StatusDot } from "#/core/design-system/status-dot"
 import { isTempId } from "#/core/lib/temp-id"
 import { monitorQueryOptions, useMonitors } from "../api/queries"
 import type { MonitorDetail } from "../interfaces/monitor"
+import { DeleteMonitorButton } from "./delete-monitor-button"
 import { RunMonitorButton } from "./run-monitor-button"
 
 export function MonitorList() {
@@ -50,6 +51,7 @@ export function MonitorList() {
               </small>
             </div>
             <RunMonitorButton monitorId={monitor.id} disabled={isCreating} />
+            <DeleteMonitorButton monitorId={monitor.id} disabled={isCreating} />
           </li>
         )
       })}

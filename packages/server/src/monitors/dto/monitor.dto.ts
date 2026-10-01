@@ -34,5 +34,9 @@ export const monitorListSchema = z.array(
     .extend({ isUp: z.boolean().nullable() }),
 )
 
+export const monitorIdFieldSchema = selectMonitorSchema.shape.id.meta({
+  title: "The id of the monitor",
+})
+
 export type MonitorDetailDto = z.infer<typeof monitorDetailSchema>
 export type MonitorListDto = z.infer<typeof monitorListSchema>

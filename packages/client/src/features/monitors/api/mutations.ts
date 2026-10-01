@@ -105,60 +105,138 @@ export function useCreateMonitor() {
 }
 
 export function useRunMonitor(monitorId: MonitorDetail["id"]) {
-  const { mutate: baseMutate, ...mutation } = $api.useMutation(
-    "post",
-    "/api/monitors/{monitorId}/run",
-    {
-      onMutate: async (_variables, { client }) => {
-        const toastId = toast.add({
-          title: "Ejecutando monitor",
-          type: "loading",
-        })
+  const mutation = $api.useMutation("post", "/api/monitors/{monitorId}/run", {
+    onMutate: async (_variables, { client }) => {
+      const ranMonitor = client.getQueryData(
+        monitorQueryOptions(monitorId).queryKey,
+      )
 
-        const queryOptions = monitorQueryOptions(monitorId)
-        const data = await client.query(queryOptions)
+      const ranMonitorMsg = "Ejecutando monitor"
+      const toastId = toast.add({
+        title: ranMonitor?.name || ranMonitorMsg,
+        description: ranMonitor?.name && ranMonitorMsg,
+        type: "loading",
+      })
 
-        toast.update(toastId, {
-          title: `Monitor: ${data.name}`,
-        })
-
-        return { toastId }
-      },
-
-      onSuccess: (ranMonitor, _variables, { toastId }, { client }) => {
-        // Se actualiza la caché con el check que devuelve el run en vez de
-        // volver a pedir la lista y el detalle.
-
-        client.setQueryData(monitorsQueryOptions().queryKey, (monitors) =>
-          monitors?.map((monitor) => {
-            if (monitor.id !== monitorId) return monitor
-
-            const isUp = ranMonitor.checks[0] ? ranMonitor.checks[0].isUp : null
-
-            return { ...monitor, isUp }
-          }),
-        )
-
-        client.setQueryData(monitorQueryOptions(monitorId).queryKey, ranMonitor)
-
-        toast.update(toastId, {
-          description: "Monitor ejecutando correctamente",
-          type: "success",
-        })
-      },
-      onError: (_error, _variables, result) => {
-        if (!result) return
-        toast.update(result.toastId, {
-          description: "Error al ejecutar el monitor",
-          type: "error",
-        })
-      },
+      return { toastId, ranMonitor }
     },
-  )
 
-  const mutate = () => {
-    baseMutate({ params: { path: { monitorId } } })
+    onSuccess: (ranMonitor, _variables, { toastId }, { client }) => {
+      // Se actualiza la caché con el check que devuelve el run en vez de
+      // volver a pedir la lista y el detalle.
+
+      const monitorsQuery = monitorsQueryOptions()
+      const monitorQuery = monitorQueryOptions(monitorId)
+
+      client.setQueryData(monitorsQuery.queryKey, (monitors) =>
+        monitors?.map((monitor) => {
+          if (monitor.id !== monitorId) return monitor
+
+          const isUp = ranMonitor.checks[0] ? ranMonitor.checks[0].isUp : null
+
+          return { ...monitor, isUp }
+        }),
+      )
+
+      client.setQueryData(monitorQuery.queryKey, ranMonitor)
+
+      const ranMonitorMsg = "Monitor ejecutando correctamente"
+      toast.update(toastId, {
+        title: ranMonitor.name || ranMonitorMsg,
+        description: ranMonitor.name && ranMonitorMsg,
+        type: "success",
+      })
+    },
+    onError: (_error, _variables, onMutateResult) => {
+      if (!onMutateResult) return
+      const { ranMonitor, toastId } = onMutateResult
+      const ranMonitorMsg =
+        "Ha ocurrido un error mientras se ejecutaba el monitor"
+      toast.update(toastId, {
+        title: ranMonitor?.name || ranMonitorMsg,
+        description: ranMonitor?.name && ranMonitorMsg,
+        type: "error",
+      })
+    },
+  })
+
+  return {
+    ...mutation,
+    mutate: () => {
+      mutation.mutate({ params: { path: { monitorId } } })
+    },
   }
+}
 
-  return { ...mutation, mutate }
+export function useDeleteMonitor(monitorId: MonitorDetail["id"]) {
+  const queryKey = monitorsQueryOptions().queryKey
+
+  const mutation = $api.useMutation("delete", "/api/monitors/{monitorId}", {
+    onMutate: (_variables, { client }) => {
+      const monitors = client.getQueryData(queryKey)
+      const deleteCandidateIndex =
+        monitors?.findIndex((monitor) => monitor.id === monitorId) ?? -1
+      const deleteCandidate = monitors?.[deleteCandidateIndex]
+
+      const toastId = toast.add({
+        type: "loading",
+        title: deleteCandidate ? deleteCandidate.name : "Eliminando monitor",
+      })
+
+      if (!deleteCandidate) return { toastId }
+
+      client.cancelQueries({ queryKey })
+      client.setQueryData(queryKey, (oldMonitors) =>
+        oldMonitors?.filter((oldMonitor) => oldMonitor.id !== monitorId),
+      )
+
+      return { deleteCandidate, deleteCandidateIndex, toastId }
+    },
+    onError: (_error, _variables, onMutateResult, { client }) => {
+      if (!onMutateResult) return
+
+      const { deleteCandidate, deleteCandidateIndex, toastId } = onMutateResult
+
+      const errorMessage = "Error al eliminar el monitor"
+      toast.update(toastId, {
+        title: !deleteCandidate && errorMessage,
+        description: deleteCandidate && errorMessage,
+        type: "error",
+      })
+
+      if (!deleteCandidate || !deleteCandidateIndex) return
+
+      client.setQueryData(queryKey, (oldMonitors) => {
+        if (!oldMonitors) return [deleteCandidate]
+        if (oldMonitors.some((monitor) => monitor.id === deleteCandidate.id))
+          return oldMonitors
+
+        return [
+          ...oldMonitors.slice(0, deleteCandidateIndex),
+          deleteCandidate,
+          ...oldMonitors.slice(deleteCandidateIndex),
+        ]
+      })
+    },
+
+    onSuccess(_data, _variables, { toastId, deleteCandidate }) {
+      const successMessage = "Monitor eliminado correctamente"
+      toast.update(toastId, {
+        title: !deleteCandidate && successMessage,
+        description: deleteCandidate && successMessage,
+        type: "success",
+      })
+    },
+
+    onSettled: (_data, _error, _variables, _mutateResult, { client }) => {
+      client.invalidateQueries({ queryKey })
+    },
+  })
+
+  return {
+    ...mutation,
+    mutate: () => {
+      mutation.mutate({ params: { path: { monitorId } } })
+    },
+  }
 }

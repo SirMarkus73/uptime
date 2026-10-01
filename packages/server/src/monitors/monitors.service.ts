@@ -3,10 +3,12 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common"
+import { eq } from "drizzle-orm"
 import { db } from "../db/index.js"
 import { check, monitor } from "../db/schema.js"
 import { UptimeService } from "../uptime/uptime.service.js"
 import { CreateMonitorDto } from "./dto/create-monitor.dto.js"
+import { DeleteMonitorDto } from "./dto/delete-monitor.dto.js"
 import { GetMonitorDto } from "./dto/get-monitor.dto.js"
 import { ListMonitorsDto } from "./dto/list-monitors.dto.js"
 import { MonitorDetailDto, MonitorListDto } from "./dto/monitor.dto.js"
@@ -124,5 +126,11 @@ export class MonitorsService {
         ...monitor.checks.slice(0, LAST_CHECKS_LIMIT - 1),
       ],
     }
+  }
+
+  async deleteMonitor({ id }: DeleteMonitorDto): Promise<void> {
+    const deletion = await db.delete(monitor).where(eq(monitor.id, id))
+
+    if (deletion.rowCount === 0) throw new NotFoundException()
   }
 }

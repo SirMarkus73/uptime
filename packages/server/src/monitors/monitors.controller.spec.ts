@@ -14,6 +14,7 @@ const test = baseTest
     runMonitor: vi.fn<MonitorsService["runMonitor"]>(),
     getMonitor: vi.fn<MonitorsService["getMonitor"]>(),
     listMonitors: vi.fn<MonitorsService["listMonitors"]>(),
+    deleteMonitor: vi.fn<MonitorsService["deleteMonitor"]>(),
   }))
   .extend("controller", async ({ monitorsService }) => {
     const module = await Test.createTestingModule({
@@ -117,7 +118,7 @@ describe("MonitorsController", () => {
       }
       monitorsService.getMonitor.mockResolvedValueOnce(found)
 
-      const result = await controller.getMonitor("monitor-1")
+      const result = await controller.getMonitor("monitor-1", session)
 
       expect(monitorsService.getMonitor).toHaveBeenCalledExactlyOnceWith({
         id: "monitor-1",
@@ -131,9 +132,9 @@ describe("MonitorsController", () => {
     }) => {
       monitorsService.getMonitor.mockRejectedValueOnce(new NotFoundException())
 
-      await expect(controller.getMonitor("missing")).rejects.toBeInstanceOf(
-        NotFoundException,
-      )
+      await expect(
+        controller.getMonitor("missing", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
     })
   })
 
@@ -160,6 +161,62 @@ describe("MonitorsController", () => {
         ownedBy: "user-1",
       })
       expect(result).toEqual(monitors)
+    })
+  })
+
+  describe("deleteMonitor", () => {
+    const found: MonitorDetailDto = {
+      id: "monitor-1",
+      name: "Example",
+      webPage: "https://example.com",
+      createdAt: "2026-09-30T00:00:00.000Z",
+      ownedBy: "user-1",
+      checks: [],
+    }
+
+    test("deletes the monitor owned by the session user", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce(found)
+      monitorsService.deleteMonitor.mockResolvedValueOnce()
+
+      const result = await controller.deleteMonitor("monitor-1", session)
+
+      expect(monitorsService.getMonitor).toHaveBeenCalledExactlyOnceWith({
+        id: "monitor-1",
+      })
+      expect(monitorsService.deleteMonitor).toHaveBeenCalledExactlyOnceWith({
+        id: "monitor-1",
+      })
+      expect(result).toBeUndefined()
+    })
+
+    test("throws NotFoundException and skips the delete when the monitor belongs to another user", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce({
+        ...found,
+        ownedBy: "user-2",
+      })
+
+      await expect(
+        controller.deleteMonitor("monitor-1", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.deleteMonitor).not.toHaveBeenCalled()
+    })
+
+    test("propagates service errors and skips the delete", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockRejectedValueOnce(new NotFoundException())
+
+      await expect(
+        controller.deleteMonitor("missing", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.deleteMonitor).not.toHaveBeenCalled()
     })
   })
 })

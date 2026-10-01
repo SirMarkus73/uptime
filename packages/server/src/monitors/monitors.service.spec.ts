@@ -1,5 +1,6 @@
 import { InternalServerErrorException, NotFoundException } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
+import { eq } from "drizzle-orm"
 import { test as baseTest } from "vitest"
 import { check, monitor } from "../db/schema.js"
 import { CheckStateResultDto } from "../uptime/dto/check-state.dto.js"
@@ -13,15 +14,18 @@ import {
 } from "./dto/monitor.dto.js"
 import { MonitorsService } from "./monitors.service.js"
 
-const { dbMock, returning, values } = vi.hoisted(() => {
+const { dbMock, returning, values, where } = vi.hoisted(() => {
   const returning = vi.fn()
   const values = vi.fn(() => ({ returning }))
+  const where = vi.fn()
 
   return {
     returning,
     values,
+    where,
     dbMock: {
       insert: vi.fn(() => ({ values })),
+      delete: vi.fn(() => ({ where })),
       query: {
         monitor: {
           findFirst: vi.fn(),
@@ -325,6 +329,38 @@ describe("MonitorsService", () => {
       await expect(
         service.runMonitor({ id: MONITOR_ID }),
       ).rejects.toBeInstanceOf(InternalServerErrorException)
+    })
+  })
+
+  describe("deleteMonitor", () => {
+    test("deletes the monitor with the given id", async ({ db, service }) => {
+      where.mockResolvedValueOnce({ rowCount: 1 })
+
+      await expect(
+        service.deleteMonitor({ id: MONITOR_ID }),
+      ).resolves.toBeUndefined()
+
+      expect(db.delete).toHaveBeenCalledExactlyOnceWith(monitor)
+      expect(where).toHaveBeenCalledExactlyOnceWith(eq(monitor.id, MONITOR_ID))
+    })
+
+    test("throws NotFoundException when no monitor was deleted", async ({
+      service,
+    }) => {
+      where.mockResolvedValueOnce({ rowCount: 0 })
+
+      await expect(
+        service.deleteMonitor({ id: MONITOR_ID }),
+      ).rejects.toBeInstanceOf(NotFoundException)
+    })
+
+    test("propagates database errors", async ({ service }) => {
+      const error = new Error("connection lost")
+      where.mockRejectedValueOnce(error)
+
+      await expect(service.deleteMonitor({ id: MONITOR_ID })).rejects.toBe(
+        error,
+      )
     })
   })
 })

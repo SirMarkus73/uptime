@@ -1,5 +1,19 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common"
-import { ApiCreatedResponse, ApiOkResponse } from "@nestjs/swagger"
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+} from "@nestjs/common"
+import {
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+} from "@nestjs/swagger"
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth"
 import { ApiAuthenticationErrors } from "../shared/api-authentication-errors.js"
 import {
@@ -10,6 +24,7 @@ import {
   MonitorDetailDto,
   MonitorListDto,
   monitorDetailSchema,
+  monitorIdFieldSchema,
   monitorListSchema,
 } from "./dto/monitor.dto.js"
 
@@ -40,7 +55,7 @@ export class MonitorsController {
   @ApiCreatedResponse({ standardSchema: monitorDetailSchema })
   @Post(":monitorId/run")
   async runMonitor(
-    @Param("monitorId") monitorId: string,
+    @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
   ): Promise<MonitorDetailDto> {
     return this.monitorService.runMonitor({ id: monitorId })
   }
@@ -50,8 +65,13 @@ export class MonitorsController {
   @Get(":monitorId")
   async getMonitor(
     @Param("monitorId") monitorId: string,
+    @Session() session: UserSession,
   ): Promise<MonitorDetailDto> {
-    return this.monitorService.getMonitor({ id: monitorId })
+    const { user } = session
+    const monitor = await this.monitorService.getMonitor({ id: monitorId })
+
+    if (monitor.ownedBy !== user.id) throw new NotFoundException()
+    return monitor
   }
 
   @ApiAuthenticationErrors()
@@ -61,5 +81,21 @@ export class MonitorsController {
     const { user } = session
 
     return this.monitorService.listMonitors({ ownedBy: user.id })
+  }
+
+  @ApiAuthenticationErrors()
+  @ApiNoContentResponse()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete(":monitorId")
+  async deleteMonitor(
+    @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
+    @Session() session: UserSession,
+  ) {
+    const { user } = session
+    const monitor = await this.monitorService.getMonitor({ id: monitorId })
+
+    if (monitor.ownedBy !== user.id) throw new NotFoundException()
+
+    await this.monitorService.deleteMonitor({ id: monitorId })
   }
 }
