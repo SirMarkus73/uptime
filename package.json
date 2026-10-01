@@ -12,6 +12,7 @@
     "check:write": "biome check --write",
     "build": "turbo build",
     "dev": "turbo dev",
+    "test": "turbo test",
     "start": "pnpm run -F ./packages/server start"
   },
   "keywords": [],
