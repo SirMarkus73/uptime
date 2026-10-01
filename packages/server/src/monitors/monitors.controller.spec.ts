@@ -2,6 +2,7 @@ import { NotFoundException } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import type { UserSession } from "@thallesp/nestjs-better-auth"
 import { test as baseTest } from "vitest"
+import { MonitorDetailDto, MonitorListDto } from "./dto/monitor.dto.js"
 import { MonitorsController } from "./monitors.controller.js"
 import { MonitorsService } from "./monitors.service.js"
 
@@ -33,11 +34,13 @@ describe("MonitorsController", () => {
       monitorsService,
       controller,
     }) => {
-      const created = {
+      const created: MonitorDetailDto = {
         id: "monitor-1",
         name: "Example",
         webPage: "https://example.com",
         createdAt: "2026-09-30T00:00:00.000Z",
+        ownedBy: "user-1",
+        checks: [],
       }
       monitorsService.createMonitor.mockResolvedValueOnce(created)
 
@@ -56,26 +59,35 @@ describe("MonitorsController", () => {
   })
 
   describe("runMonitor", () => {
-    test("runs the monitor and returns the check", async ({
+    test("runs the monitor and returns it with the new check", async ({
       monitorsService,
       controller,
     }) => {
-      const checkResult = {
-        id: "check-1",
-        isUp: true,
-        statusCode: 200,
-        responseTimeMs: 12.5,
-        errorCode: null,
-        checkedAt: "2026-09-30T00:00:01.000Z",
+      const ranMonitor: MonitorDetailDto = {
+        id: "monitor-1",
+        name: "Example",
+        webPage: "https://example.com",
+        createdAt: "2026-09-30T00:00:00.000Z",
+        ownedBy: "user-1",
+        checks: [
+          {
+            id: "check-1",
+            isUp: true,
+            statusCode: 200,
+            responseTimeMs: 12.5,
+            errorCode: null,
+            checkedAt: "2026-09-30T00:00:01.000Z",
+          },
+        ],
       }
-      monitorsService.runMonitor.mockResolvedValueOnce(checkResult)
+      monitorsService.runMonitor.mockResolvedValueOnce(ranMonitor)
 
       const result = await controller.runMonitor("monitor-1")
 
       expect(monitorsService.runMonitor).toHaveBeenCalledExactlyOnceWith({
         id: "monitor-1",
       })
-      expect(result).toEqual(checkResult)
+      expect(result).toEqual(ranMonitor)
     })
 
     test("propagates service errors", async ({
@@ -95,11 +107,12 @@ describe("MonitorsController", () => {
       monitorsService,
       controller,
     }) => {
-      const found = {
+      const found: MonitorDetailDto = {
         id: "monitor-1",
         name: "Example",
         webPage: "https://example.com",
         createdAt: "2026-09-30T00:00:00.000Z",
+        ownedBy: "user-1",
         checks: [],
       }
       monitorsService.getMonitor.mockResolvedValueOnce(found)
@@ -129,12 +142,13 @@ describe("MonitorsController", () => {
       monitorsService,
       controller,
     }) => {
-      const monitors = [
+      const monitors: MonitorListDto = [
         {
           id: "monitor-1",
           name: "Example",
           webPage: "https://example.com",
           createdAt: "2026-09-30T00:00:00.000Z",
+          ownedBy: "user-1",
           isUp: true,
         },
       ]

@@ -20,6 +20,7 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
     "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
     "types": [
       "vitest/globals",
       "node"

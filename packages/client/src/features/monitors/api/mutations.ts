@@ -5,7 +5,6 @@ import type { Monitor } from "../interfaces/monitor"
 import { monitorQueryOptions, monitorsQueryOptions } from "./queries"
 
 // El detalle de un monitor solo trae los últimos checks (ver MonitorsService.getMonitor).
-const LAST_CHECKS_LIMIT = 5
 
 export function useCreateMonitor() {
   const queryClient = useQueryClient()
@@ -64,25 +63,23 @@ export function useRunMonitor(monitorId: Monitor["id"]) {
         return { toastId }
       },
 
-      onSuccess: (check, _variables, { toastId }) => {
+      onSuccess: (ranMonitor, _variables, { toastId }) => {
         // Se actualiza la caché con el check que devuelve el run en vez de
         // volver a pedir la lista y el detalle.
 
         queryClient.setQueryData(monitorsQueryOptions().queryKey, (monitors) =>
-          monitors?.map((monitor) =>
-            monitor.id === monitorId
-              ? { ...monitor, isUp: check.isUp }
-              : monitor,
-          ),
+          monitors?.map((monitor) => {
+            if (monitor.id !== monitorId) return monitor
+
+            const isUp = ranMonitor.checks[0] ? ranMonitor.checks[0].isUp : null
+
+            return { ...monitor, isUp }
+          }),
         )
 
         queryClient.setQueryData(
           monitorQueryOptions(monitorId).queryKey,
-          (monitor) =>
-            monitor && {
-              ...monitor,
-              checks: [check, ...monitor.checks].slice(0, LAST_CHECKS_LIMIT),
-            },
+          ranMonitor,
         )
 
         toast.update(toastId, {

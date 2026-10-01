@@ -4,22 +4,15 @@ import { Session, type UserSession } from "@thallesp/nestjs-better-auth"
 import { ApiAuthenticationErrors } from "../shared/api-authentication-errors.js"
 import {
   type CreateMonitorBodyDto,
-  CreateMonitorResponseDto,
   createMonitorBodySchema,
-  createMonitorResponseSchema,
 } from "./dto/create-monitor.dto.js"
 import {
-  GetMonitorResultDto,
-  getMonitorResultSchema,
-} from "./dto/get-monitor.dto.js"
-import {
-  type ListMonitorsResponseDto,
-  listMonitorsResponseSchema,
-} from "./dto/list-monitors.dto.js"
-import {
-  RunMonitorResultDto,
-  runMonitorResultSchema,
-} from "./dto/run-monitor.dto.js"
+  MonitorDetailDto,
+  MonitorListDto,
+  monitorDetailSchema,
+  monitorListSchema,
+} from "./dto/monitor.dto.js"
+
 import { MonitorsService } from "./monitors.service.js"
 
 @Controller("monitors")
@@ -27,12 +20,12 @@ export class MonitorsController {
   constructor(private readonly monitorService: MonitorsService) {}
 
   @ApiAuthenticationErrors()
-  @ApiCreatedResponse({ standardSchema: createMonitorResponseSchema })
+  @ApiCreatedResponse({ standardSchema: monitorDetailSchema })
   @Post()
   async createMonitor(
     @Session() session: UserSession,
     @Body({ schema: createMonitorBodySchema }) body: CreateMonitorBodyDto,
-  ): Promise<CreateMonitorResponseDto> {
+  ): Promise<MonitorDetailDto> {
     const { user } = session
     const { webPage, name } = body
 
@@ -44,29 +37,27 @@ export class MonitorsController {
   }
 
   @ApiAuthenticationErrors()
-  @ApiCreatedResponse({ standardSchema: runMonitorResultSchema })
+  @ApiCreatedResponse({ standardSchema: monitorDetailSchema })
   @Post(":monitorId/run")
   async runMonitor(
     @Param("monitorId") monitorId: string,
-  ): Promise<RunMonitorResultDto> {
+  ): Promise<MonitorDetailDto> {
     return this.monitorService.runMonitor({ id: monitorId })
   }
 
   @ApiAuthenticationErrors()
-  @ApiOkResponse({ standardSchema: getMonitorResultSchema })
+  @ApiOkResponse({ standardSchema: monitorDetailSchema })
   @Get(":monitorId")
   async getMonitor(
     @Param("monitorId") monitorId: string,
-  ): Promise<GetMonitorResultDto> {
+  ): Promise<MonitorDetailDto> {
     return this.monitorService.getMonitor({ id: monitorId })
   }
 
   @ApiAuthenticationErrors()
-  @ApiOkResponse({ standardSchema: listMonitorsResponseSchema })
+  @ApiOkResponse({ standardSchema: monitorListSchema })
   @Get()
-  async listMonitors(
-    @Session() session: UserSession,
-  ): Promise<ListMonitorsResponseDto> {
+  async listMonitors(@Session() session: UserSession): Promise<MonitorListDto> {
     const { user } = session
 
     return this.monitorService.listMonitors({ ownedBy: user.id })

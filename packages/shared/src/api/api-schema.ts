@@ -226,11 +226,11 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         name: string;
-                        /** Format: uri */
-                        webPage: string;
                         /** Format: date-time */
                         createdAt: string | null;
-                        /** @description May be null when no checks has run */
+                        /** Format: uri */
+                        webPage: string;
+                        ownedBy: string;
                         isUp: boolean | null;
                     }[];
                 };
@@ -311,10 +311,22 @@ export interface operations {
                         /** Format: uuid */
                         id: string;
                         name: string;
-                        /** Format: uri */
-                        webPage: string;
                         /** Format: date-time */
                         createdAt: string | null;
+                        /** Format: uri */
+                        webPage: string;
+                        ownedBy: string;
+                        checks: {
+                            /** Format: date-time */
+                            checkedAt: string;
+                            errorCode: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isUp: boolean;
+                            /** @example 14.2841248 */
+                            responseTimeMs: number;
+                            statusCode: number | null;
+                        }[];
                     };
                 };
             };
@@ -387,13 +399,23 @@ export interface operations {
                     "application/json": {
                         /** Format: uuid */
                         id: string;
-                        errorCode: string | null;
+                        name: string;
                         /** Format: date-time */
-                        checkedAt: string;
-                        isUp: boolean;
-                        /** @example 14.2841248 */
-                        responseTimeMs: number;
-                        statusCode: number | null;
+                        createdAt: string | null;
+                        /** Format: uri */
+                        webPage: string;
+                        ownedBy: string;
+                        checks: {
+                            /** Format: date-time */
+                            checkedAt: string;
+                            errorCode: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isUp: boolean;
+                            /** @example 14.2841248 */
+                            responseTimeMs: number;
+                            statusCode: number | null;
+                        }[];
                     };
                 };
             };
@@ -471,6 +493,7 @@ export interface operations {
                         createdAt: string | null;
                         /** Format: uri */
                         webPage: string;
+                        ownedBy: string;
                         checks: {
                             /** Format: date-time */
                             checkedAt: string;

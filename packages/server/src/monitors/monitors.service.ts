@@ -6,16 +6,13 @@ import {
 import { db } from "../db/index.js"
 import { check, monitor } from "../db/schema.js"
 import { UptimeService } from "../uptime/uptime.service.js"
-import {
-  CreateMonitorDto,
-  CreateMonitorResponseDto,
-} from "./dto/create-monitor.dto.js"
-import { GetMonitorDto, GetMonitorResultDto } from "./dto/get-monitor.dto.js"
-import {
-  ListMonitorsDto,
-  ListMonitorsResponseDto,
-} from "./dto/list-monitors.dto.js"
-import { RunMonitorDto, RunMonitorResultDto } from "./dto/run-monitor.dto.js"
+import { CreateMonitorDto } from "./dto/create-monitor.dto.js"
+import { GetMonitorDto } from "./dto/get-monitor.dto.js"
+import { ListMonitorsDto } from "./dto/list-monitors.dto.js"
+import { MonitorDetailDto, MonitorListDto } from "./dto/monitor.dto.js"
+import { RunMonitorDto } from "./dto/run-monitor.dto.js"
+
+const LAST_CHECKS_LIMIT = 5
 
 @Injectable()
 export class MonitorsService {
@@ -25,7 +22,7 @@ export class MonitorsService {
     ownedBy,
     webPage,
     name,
-  }: CreateMonitorDto): Promise<CreateMonitorResponseDto> {
+  }: CreateMonitorDto): Promise<MonitorDetailDto> {
     const [result] = await db
       .insert(monitor)
       .values({
@@ -38,23 +35,24 @@ export class MonitorsService {
         name: monitor.name,
         webPage: monitor.webPage,
         createdAt: monitor.createdAt,
+        ownedBy: monitor.ownedBy,
       })
 
     if (!result) {
       throw new InternalServerErrorException()
     }
 
-    return result
+    return { ...result, checks: [] }
   }
 
-  async getMonitor({ id }: GetMonitorDto): Promise<GetMonitorResultDto> {
+  async getMonitor({ id }: GetMonitorDto): Promise<MonitorDetailDto> {
     const result = await db.query.monitor.findFirst({
       where: {
         id,
       },
       with: {
         checks: {
-          limit: 5,
+          limit: LAST_CHECKS_LIMIT,
           orderBy: {
             checkedAt: "desc",
           },
@@ -69,12 +67,14 @@ export class MonitorsService {
     return result
   }
 
-  async listMonitors({
-    ownedBy,
-  }: ListMonitorsDto): Promise<ListMonitorsResponseDto> {
+  async listMonitors({ ownedBy }: ListMonitorsDto): Promise<MonitorListDto> {
     const monitors = await db.query.monitor.findMany({
       columns: {
-        ownedBy: false,
+        id: true,
+        name: true,
+        createdAt: true,
+        ownedBy: true,
+        webPage: true,
       },
       where: {
         ownedBy,
@@ -93,24 +93,33 @@ export class MonitorsService {
     return monitors
   }
 
-  async runMonitor({ id }: RunMonitorDto): Promise<RunMonitorResultDto> {
-    const monitor = await db.query.monitor.findFirst({ where: { id } })
-
-    if (!monitor) {
-      throw new NotFoundException()
-    }
+  async runMonitor({ id }: RunMonitorDto): Promise<MonitorDetailDto> {
+    const monitor = await this.getMonitor({ id })
 
     const checkResult = await this.uptimeService.checkState(monitor.webPage)
 
     const [checkInsertResult] = await db
       .insert(check)
       .values({ ...checkResult, monitorId: id })
-      .returning()
+      .returning({
+        id: check.id,
+        isUp: check.isUp,
+        statusCode: check.statusCode,
+        responseTimeMs: check.responseTimeMs,
+        checkedAt: check.checkedAt,
+        errorCode: check.errorCode,
+      })
 
     if (!checkInsertResult) {
       throw new InternalServerErrorException()
     }
 
-    return checkInsertResult
+    return {
+      ...monitor,
+      checks: [
+        checkInsertResult,
+        ...monitor.checks.slice(0, LAST_CHECKS_LIMIT - 1),
+      ],
+    }
   }
 }
