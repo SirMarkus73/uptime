@@ -49,7 +49,11 @@ export function MonitorListItem({ monitor }: MonitorListItemProps) {
       </div>
       <RunMonitorButton monitorId={monitor.id} disabled={isCreating} />
       <ViewMonitorButton monitorId={monitor.id} disabled={isCreating} />
-      <DeleteMonitorButton monitorId={monitor.id} disabled={isCreating} />
+      <DeleteMonitorButton
+        monitorId={monitor.id}
+        monitorName={monitor.name}
+        disabled={isCreating}
+      />
     </li>
   )
 }
