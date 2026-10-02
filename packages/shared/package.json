@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "exports": {
-    "./api": "./src/api/api-schema.ts"
+    "./api": "./src/api/api-schema.d.ts"
   },
   "keywords": [],
   "author": "",

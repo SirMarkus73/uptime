@@ -1,15 +1,15 @@
 {
   "files.watcherExclude": {
     "**/routeTree.gen.ts": true,
-    "**/lib/api-schema.ts": true
+    "**/api-schema.d.ts": true
   },
   "search.exclude": {
     "**/routeTree.gen.ts": true,
-    "**/lib/api-schema.ts": true
+    "**/api-schema.d.ts": true
   },
   "files.readonlyInclude": {
     "**/routeTree.gen.ts": true,
-    "**/lib/api-schema.ts": true
+    "**/api-schema.d.ts": true
   },
   "files.associations": {
     "*.css": "tailwindcss"

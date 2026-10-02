@@ -13,7 +13,7 @@ import { CONFIG } from "./config/configuration.js"
 const API_PREFIX = "api"
 
 const CLIENT_OPENAPI_PATH = new URL(
-  "../../shared/src/api/api-schema.ts",
+  "../../shared/src/api/api-schema.d.ts",
   import.meta.url,
 )
 const CLIENT_DIST_PATH = fileURLToPath(
