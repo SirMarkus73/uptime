@@ -68,6 +68,11 @@ Los imports internos usan el alias `#/*` → `src/*` (definido en `imports` del
 Las funcionalidades se organizan por carpeta dentro de `features/`, cada una
 con sus `api/` (queries y mutations), `components/` y `pages/`.
 
+Los componentes de página viven en `pages/`, su fichero termina en `-page.tsx` y
+su nombre en `Page` (por ejemplo `pages/login-page.tsx` exporta `LoginPage`).
+Solo los importan las rutas de `src/routes/`; el resto de componentes van en
+`components/`.
+
 ## Rutas
 
 | Ruta        | Página                                              |

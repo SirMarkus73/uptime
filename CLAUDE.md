@@ -63,6 +63,7 @@ Documentación de la API con el servidor arrancado: `http://localhost:3000/api/r
 ### Cliente (`packages/client`, SPA con React 19 + Vite)
 
 - Arquitectura por funcionalidades ("screaming architecture"): `src/features/<funcionalidad>/{api,components,pages,interfaces}`; los componentes base están en `src/core/design-system/` (Base UI + `tailwind-variants`); los ficheros de `src/routes/` son envoltorios finos que renderizan las páginas de cada funcionalidad.
+- Los componentes de página van en `features/<funcionalidad>/pages/<nombre>-page.tsx` y se llaman `<Nombre>Page`; solo los importan las rutas. Cualquier otro componente va en `components/`.
 - Los imports internos usan el alias `#/*` → `src/*`.
 - La gestión del 401 está centralizada: el `onError` de `QueryCache`/`MutationCache` en `src/core/router.tsx` redirige a `/login`; los componentes no lo gestionan.
 - Las mutations (`features/monitors/api/mutations.ts`) siguen un patrón de actualización optimista: `onMutate` crea un toast y modifica la caché de queries (ids temporales con `core/lib/temp-id.ts`), `onSuccess`/`onError` actualizan el toast y reconcilian o revierten, y `onSettled` invalida. Reutiliza los helpers `queryOptions` de `api/queries.ts` para las query keys.
