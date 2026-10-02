@@ -18,7 +18,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "test": "turbo test",
-    "start": "pnpm run -F ./packages/server start",
+    "start": "pnpm run -F @uptime/server start",
     "prepare": "husky",
     "commit": "cz",
     "release": "semantic-release"
