@@ -1,3 +1,19 @@
+# [1.2.0](https://github.com/SirMarkus73/uptime/compare/v1.1.0...v1.2.0) (2026-10-02)
+
+
+### Bug Fixes
+
+* **db:** Devolver las fechas en formato ISO 8601 ([a0b5591](https://github.com/SirMarkus73/uptime/commit/a0b5591a31ebd67342ffd57f09c6994250531aa1))
+* **db:** Guardar las fechas de monitores y comprobaciones con zona horaria ([d56b2f1](https://github.com/SirMarkus73/uptime/commit/d56b2f11e8f7bc3255e9884dd25eaa8a0fbb7457))
+* **monitors:** Impedir ejecutar monitores de otros usuarios ([c4c33b7](https://github.com/SirMarkus73/uptime/commit/c4c33b7c35cd2c7d046a1aba1b06a6a379b297bd))
+* **monitors:** Validar el id y documentar el 404 al obtener un monitor ([a8c09c9](https://github.com/SirMarkus73/uptime/commit/a8c09c929a484543a825ef64ec05452ec71a5336))
+* **server:** Contar por separado los dos límites de peticiones ([7a13154](https://github.com/SirMarkus73/uptime/commit/7a13154b9c52fb29f8962eeaf6da54e7e9d9a922))
+
+
+### Features
+
+* **monitors:** Añadir la página de detalle de un monitor ([ed4d875](https://github.com/SirMarkus73/uptime/commit/ed4d8752a7620a583ba0cba9fce2df21946d9b86))
+
 # [1.1.0](https://github.com/SirMarkus73/uptime/compare/v1.0.0...v1.1.0) (2026-10-01)
 
 
