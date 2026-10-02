@@ -1,3 +1,17 @@
+# [1.3.0](https://github.com/SirMarkus73/uptime/compare/v1.2.0...v1.3.0) (2026-10-02)
+
+
+### Bug Fixes
+
+* **auth:** Permitir iniciar sesión desde otros dispositivos de la red ([b7d2f31](https://github.com/SirMarkus73/uptime/commit/b7d2f31f689632aeda3446dfee54a7a58d984a5f))
+* **monitors:** Normalizar la URL de los monitores al crearlos y editarlos ([f9b1354](https://github.com/SirMarkus73/uptime/commit/f9b1354c5b9a3b1b9623e2fe68b57ff1413521d3))
+
+
+### Features
+
+* **design-system:** Añadir AlertDialog que se muestra como drawer en móvil ([f2b4443](https://github.com/SirMarkus73/uptime/commit/f2b4443f4166725ec45b87758b72769e6835accb))
+* **monitors:** Confirmar antes de eliminar un monitor ([7c62ab1](https://github.com/SirMarkus73/uptime/commit/7c62ab1c34b572f567e77a2dc1edc7cd0c4c76ad))
+
 # [1.2.0](https://github.com/SirMarkus73/uptime/compare/v1.1.0...v1.2.0) (2026-10-02)
 
 
