@@ -35,6 +35,7 @@ mostrando los errores.
 | `PORT`            | No          | `3000`                  | Puerto en el que escucha el servidor.                                       |
 | `DATABASE_URL`    | Sí          | —                       | Cadena de conexión a Postgres. El valor de `.env.example` coincide con el `compose.yaml` de la raíz. |
 | `BETTER_AUTH_URL` | No          | `http://localhost:3000` | Origen público del servidor (solo el origen; Better Auth añade `/api/auth`). |
+| `BETTER_AUTH_SECRET` | Sí       | —                       | Secreto con el que Better Auth firma cookies y tokens (mínimo 32 caracteres). El de `.env.example` solo sirve para desarrollo; genera uno con `openssl rand -base64 32`. |
 
 ## Base de datos
 
@@ -101,7 +102,7 @@ pnpm test:e2e      # tests e2e (test/*.e2e-spec.ts)
 ```
 
 - Los tests unitarios no tocan la base de datos; `vitest.config.ts` define una
-  `DATABASE_URL` ficticia para que la validación de la configuración no falle.
+  `DATABASE_URL` y un `BETTER_AUTH_SECRET` ficticios para que la validación de la configuración no falle.
 - Los tests e2e levantan el `AppModule` completo, así que necesitan el `.env` y
   Postgres en marcha.
 

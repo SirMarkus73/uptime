@@ -15,6 +15,7 @@ export default defineConfig({
     // depending on a local .env.
     env: {
       DATABASE_URL: "postgres://test:test@localhost:5432/test",
+      BETTER_AUTH_SECRET: "unit-tests-secret-0123456789abcdef",
     },
   },
 })

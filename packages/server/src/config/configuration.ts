@@ -14,6 +14,9 @@ const schema = z.object({
   DATABASE_URL: z.url(),
   // Solo el origen: better-auth le añade su basePath (/api/auth).
   BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
+  // Firma las cookies y los tokens de sesión. Better Auth avisa por debajo de
+  // 32 caracteres y en producción rechaza su secreto por defecto.
+  BETTER_AUTH_SECRET: z.string().min(32),
 })
 
 const parsed = schema.safeParse(process.env)

@@ -31,7 +31,9 @@ import { UptimeModule } from "./uptime/uptime.module.js"
         },
       ],
     }),
-    AuthModule.forRoot({ auth }),
+    // Cliente y API comparten origen, así que no hace falta CORS. Además el
+    // módulo no admite `trustedOrigins` como función si tiene que montarlo.
+    AuthModule.forRoot({ auth, disableTrustedOriginsCors: true }),
     UptimeModule,
     MonitorsModule,
   ],
