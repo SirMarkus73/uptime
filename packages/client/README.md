@@ -1,183 +1,100 @@
-Welcome to your new TanStack Start app!
+# @uptime/client
 
-# Getting Started
+Frontend de Uptime: una SPA en React que consume la API de
+[`@uptime/server`](../server/).
 
-To run this application:
+## Stack
+
+- **React 19** + **Vite 8** (SPA, sin SSR).
+- **[TanStack Router](https://tanstack.com/router)** con rutas basadas en ficheros.
+- **[TanStack Query](https://tanstack.com/query)** con
+  [`openapi-fetch`](https://openapi-ts.dev/openapi-fetch/) y
+  [`openapi-react-query`](https://openapi-ts.dev/openapi-react-query/), tipados con
+  el esquema de [`@uptime/shared/api`](../shared/).
+- **[Better Auth](https://www.better-auth.com/)** (cliente React) para registro e
+  inicio de sesión.
+- **[Tailwind CSS 4](https://tailwindcss.com/)** + `tailwind-variants` y
+  `tailwind-merge`, componentes de [Base UI](https://base-ui.com/) e iconos de
+  [Lucide](https://lucide.dev/).
+
+## Desarrollo
 
 ```bash
-pnpm install
 pnpm dev
 ```
 
-# Building For Production
+Arranca Vite en <http://localhost:3001>. Gracias a la opción `with` de
+[`turbo.json`](turbo.json), lanzarlo con Turborepo (`pnpm dev` aquí o en la
+raíz) arranca también el servidor.
 
-To build this application for production:
+Vite redirige las peticiones a `/api` hacia `http://localhost:3000`
+(ver [`vite.config.ts`](vite.config.ts)), así que cliente y API comparten origen
+y las cookies de sesión funcionan sin configurar CORS.
 
-```bash
-pnpm build
+## Scripts
+
+| Script                 | Descripción                                             |
+| ---------------------- | ------------------------------------------------------- |
+| `pnpm dev`             | Servidor de desarrollo en el puerto 3001.               |
+| `pnpm build`           | Compila a `dist/` (lo sirve el servidor en producción). |
+| `pnpm preview`         | Previsualiza la build.                                  |
+| `pnpm generate-routes` | Regenera `src/routeTree.gen.ts` sin arrancar Vite.      |
+| `pnpm check-types`     | Comprueba los tipos con `tsc --noEmit`.                 |
+
+## Estructura
+
+```
+src/
+├── main.tsx               # Punto de entrada
+├── styles.css             # Tailwind y estilos globales
+├── routes/                # Rutas (file-based routing)
+├── routeTree.gen.ts       # Árbol de rutas autogenerado, no editar
+├── core/
+│   ├── design-system/     # Componentes base (button, text-field, toast…)
+│   ├── layout/            # Cabecera y layout común
+│   ├── lib/               # Helpers
+│   └── router.tsx         # Creación del router y del QueryClient
+├── features/
+│   ├── auth/              # Cliente de Better Auth, login y registro
+│   ├── home/              # Página principal
+│   ├── monitors/          # Listado, creación, ejecución y borrado de monitores
+│   └── uptime-check/      # Comprobación puntual de una URL
+└── shared/api/            # Cliente HTTP tipado y gestión de errores
 ```
 
-## Styling
+Los imports internos usan el alias `#/*` → `src/*` (definido en `imports` del
+`package.json`), por ejemplo `import { Button } from "#/core/design-system/button"`.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+Las funcionalidades se organizan por carpeta dentro de `features/`, cada una
+con sus `api/` (queries y mutations), `components/` y `pages/`.
 
-### Removing Tailwind CSS
+## Rutas
 
-If you prefer not to use Tailwind CSS:
+| Ruta        | Página                                              |
+| ----------- | --------------------------------------------------- |
+| `/`         | Comprobación de URLs y, con sesión, los monitores.  |
+| `/login`    | Inicio de sesión.                                   |
+| `/register` | Registro.                                           |
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
+- Para añadir una ruta crea un fichero en `src/routes/`; el plugin de TanStack
+  Router actualiza `routeTree.gen.ts` automáticamente.
+- El layout común está en `src/routes/__root.tsx`: lo que se añada ahí aparece
+  en todas las rutas.
+- Para navegar usa el componente `Link` de `@tanstack/react-router`.
 
+## Llamadas a la API
 
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
+[`src/shared/api/fetch-client.ts`](src/shared/api/fetch-client.ts) exporta
+`fetchClient` (openapi-fetch) y `$api` (hooks de TanStack Query). Ambos están
+tipados con `paths` de `@uptime/shared/api`, de modo que rutas, parámetros y
+respuestas se comprueban en tiempo de compilación.
 
 ```tsx
-import { Link } from "@tanstack/react-router";
+const { data } = $api.useQuery("get", "/api/monitors")
 ```
 
-Then anywhere in your JSX you can use it like so:
+Cualquier query o mutation que devuelva `401` redirige a `/login`; está
+centralizado en el `QueryClient` de [`src/core/router.tsx`](src/core/router.tsx),
+así que los componentes no tienen que gestionarlo.
 
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+Si cambia la API, arranca el servidor en desarrollo para regenerar los tipos.
