@@ -11,6 +11,8 @@ export const buttonStyles = tv({
         "border border-neutral-700 text-neutral-300 hover:border-neutral-400 hover:text-neutral-100",
       danger:
         "border border-neutral-800 text-neutral-300 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300",
+      // Para confirmar una acción destructiva (p. ej. en un AlertDialog).
+      destructive: "bg-red-500 text-neutral-950 hover:bg-red-400",
     },
     size: {
       md: "px-4 py-2",
