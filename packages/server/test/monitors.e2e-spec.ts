@@ -17,9 +17,25 @@ describe("MonitorsController (e2e)", () => {
       expect(response.body).toEqual(expect.schemaMatching(monitorDetailSchema))
       expect(response.body).toMatchObject({
         name: "Example",
-        webPage: "https://example.com",
+        webPage: "https://example.com/",
         ownedBy: user.id,
         checks: [],
+      })
+    })
+
+    test("201 normalizing the scheme and host without touching path or query", async ({
+      user,
+    }) => {
+      const response = await user.agent
+        .post("/api/monitors")
+        .send({
+          name: "Example",
+          webPage: "HTTPS://Example.COM/Docs?token=AbC",
+        })
+        .expect(201)
+
+      expect(response.body).toMatchObject({
+        webPage: "https://example.com/Docs?token=AbC",
       })
     })
 

@@ -18,10 +18,8 @@ export function CreateMonitorForm() {
     if (!monitorName || !monitorUrl) return
 
     mutate({
-      body: {
-        webPage: monitorUrl,
-        name: monitorName,
-      },
+      webPage: monitorUrl,
+      name: monitorName,
     })
   }
 

@@ -12,7 +12,7 @@ export function useCreateMonitor() {
 
   const user = session?.user
 
-  return $api.useMutation("post", "/api/monitors", {
+  const mutation = $api.useMutation("post", "/api/monitors", {
     // El id del toast viaja como resultado de onMutate, así cada petición
     // actualiza su propio toast aunque dos monitores se llamen igual.
 
@@ -102,6 +102,20 @@ export function useCreateMonitor() {
       })
     },
   })
+
+  return {
+    ...mutation,
+    mutate: (data: Parameters<typeof mutation.mutate>["0"]["body"]) => {
+      return mutation.mutate({
+        // Misma normalización que el servidor, para que la actualización optimista
+        // muestre la URL tal y como se va a guardar.
+        body: {
+          ...data,
+          webPage: URL.parse(data.webPage)?.href ?? data.webPage,
+        },
+      })
+    },
+  }
 }
 
 export function useRunMonitor(monitorId: MonitorDetail["id"]) {

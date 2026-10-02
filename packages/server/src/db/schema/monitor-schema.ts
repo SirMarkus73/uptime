@@ -39,9 +39,15 @@ export const monitorRelations = defineRelationsPart({ user, monitor }, (r) => ({
 }))
 
 // -- Schemas
+// Normaliza la URL con el parser WHATWG: pone en minúsculas el esquema y el dominio,
+// pero respeta la ruta y los parámetros, que sí distinguen mayúsculas. Si no se puede
+// parsear se deja tal cual para que z.httpUrl() la rechace con un 400 en lugar de lanzar.
+const webPageSchema = () =>
+  z.httpUrl().overwrite((url) => URL.parse(url)?.href ?? url)
+
 export const insertMonitorSchema = createInsertSchema(monitor, {
   createdAt: () => z.iso.datetime(),
-  webPage: () => z.httpUrl(),
+  webPage: webPageSchema,
   name: (r) => r.min(1).max(30),
 })
 export const selectMonitorSchema = createSelectSchema(monitor, {
@@ -51,6 +57,6 @@ export const selectMonitorSchema = createSelectSchema(monitor, {
 })
 export const updateMonitorSchema = createUpdateSchema(monitor, {
   createdAt: () => z.iso.datetime(),
-  webPage: () => z.httpUrl(),
+  webPage: webPageSchema,
   name: (r) => r.min(1).max(30),
 })
