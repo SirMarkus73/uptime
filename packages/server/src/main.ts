@@ -1,6 +1,5 @@
 import { existsSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
-import { StandardSchemaValidationPipe } from "@nestjs/common"
 import { NestFactory } from "@nestjs/core"
 import type { NestExpressApplication } from "@nestjs/platform-express"
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
@@ -9,8 +8,7 @@ import type { NextFunction, Request, Response } from "express"
 import openapiTS, { astToString } from "openapi-typescript"
 import { AppModule } from "./app.module.js"
 import { CONFIG } from "./config/configuration.js"
-
-const API_PREFIX = "api"
+import { API_PREFIX, setupApp } from "./setup-app.js"
 
 const CLIENT_OPENAPI_PATH = new URL(
   "../../shared/src/api/api-schema.d.ts",
@@ -26,7 +24,7 @@ async function bootstrap() {
     bodyParser: false,
   })
 
-  app.setGlobalPrefix(API_PREFIX)
+  setupApp(app)
 
   const config = new DocumentBuilder()
     .setTitle("Cats example")
@@ -96,8 +94,6 @@ async function bootstrap() {
       res.sendFile("index.html", { root: CLIENT_DIST_PATH })
     })
   }
-
-  app.useGlobalPipes(new StandardSchemaValidationPipe())
 
   await app.listen(CONFIG.PORT ?? 3000)
 }
