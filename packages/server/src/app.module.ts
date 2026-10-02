@@ -16,12 +16,16 @@ import { UptimeModule } from "./uptime/uptime.module.js"
 @Module({
   imports: [
     ThrottlerModule.forRoot({
+      // Cada throttler necesita su propio nombre: sin él ambos se llaman
+      // "default", comparten contador y cada petición cuenta dos veces.
       throttlers: [
         {
+          name: "short",
           ttl: seconds(1),
           limit: 3,
         },
         {
+          name: "long",
           ttl: minutes(1),
           limit: 8,
         },
