@@ -1,0 +1,2 @@
+ALTER TABLE "check" ALTER COLUMN "checkedAt" SET DATA TYPE timestamp with time zone USING "checkedAt"::timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "monitor" ALTER COLUMN "createdAt" SET DATA TYPE timestamp with time zone USING "createdAt"::timestamp with time zone;

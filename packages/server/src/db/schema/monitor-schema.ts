@@ -23,7 +23,7 @@ export const monitor = camelCase.table(
     ownedBy: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
-    createdAt: timestamp({ mode: "string" }).defaultNow(),
+    createdAt: timestamp({ mode: "string", withTimezone: true }).defaultNow(),
   },
   (t) => [uniqueIndex("unique_name_and_owner").on(t.ownedBy, t.name)],
 )

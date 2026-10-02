@@ -32,7 +32,9 @@ export const check = camelCase.table(
     statusCode: integer(),
     responseTimeMs: numeric({ precision: 8, mode: "number" }).notNull(),
     errorCode: varchar(),
-    checkedAt: timestamp({ mode: "string" }).notNull().defaultNow(),
+    checkedAt: timestamp({ mode: "string", withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     index("check_monitor_id_checked_at_idx").on(
