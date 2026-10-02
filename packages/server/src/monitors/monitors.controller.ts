@@ -12,10 +12,12 @@ import {
 import {
   ApiCreatedResponse,
   ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
 } from "@nestjs/swagger"
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth"
 import { ApiAuthenticationErrors } from "../shared/api-authentication-errors.js"
+import { notFoundSchema } from "../shared/not-found-error.js"
 import {
   type CreateMonitorBodyDto,
   createMonitorBodySchema,
@@ -27,7 +29,6 @@ import {
   monitorIdFieldSchema,
   monitorListSchema,
 } from "./dto/monitor.dto.js"
-
 import { MonitorsService } from "./monitors.service.js"
 
 @Controller("monitors")
@@ -61,10 +62,11 @@ export class MonitorsController {
   }
 
   @ApiAuthenticationErrors()
+  @ApiNotFoundResponse({ standardSchema: notFoundSchema })
   @ApiOkResponse({ standardSchema: monitorDetailSchema })
   @Get(":monitorId")
   async getMonitor(
-    @Param("monitorId") monitorId: string,
+    @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
     @Session() session: UserSession,
   ): Promise<MonitorDetailDto> {
     const { user } = session

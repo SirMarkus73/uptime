@@ -542,6 +542,18 @@ export interface operations {
                     };
                 };
             };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 404;
+                    };
+                };
+            };
             /** @description Too Many Requests */
             429: {
                 headers: {
