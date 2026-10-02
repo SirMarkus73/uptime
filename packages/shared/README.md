@@ -6,9 +6,9 @@ Paquete interno con los tipos compartidos entre el cliente y el servidor.
 
 | Import                | Fichero                  | Contenido                                       |
 | --------------------- | ------------------------ | ----------------------------------------------- |
-| `@uptime/shared/api`  | `src/api/api-schema.ts`  | Tipos de la API (`paths`, `components`, …) generados a partir del esquema OpenAPI. |
+| `@uptime/shared/api`  | `src/api/api-schema.d.ts`  | Tipos de la API (`paths`, `components`, …) generados a partir del esquema OpenAPI. |
 
-## `api-schema.ts` es autogenerado
+## `api-schema.d.ts` es autogenerado
 
 **No lo edites a mano.** El servidor lo regenera con
 [`openapi-typescript`](https://openapi-ts.dev/) cada vez que arranca con

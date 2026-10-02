@@ -73,7 +73,7 @@ Documentación con el servidor arrancado:
 
 Cuando `NODE_ENV` no es `production`, al arrancar se convierte el esquema
 OpenAPI a TypeScript con `openapi-typescript` y se escribe en
-`packages/shared/src/api/api-schema.ts`. Después de cambiar un endpoint o un
+`packages/shared/src/api/api-schema.d.ts`. Después de cambiar un endpoint o un
 DTO, arranca el servidor en desarrollo y haz commit del fichero regenerado
 (ver [`@uptime/shared`](../shared/)).
 
