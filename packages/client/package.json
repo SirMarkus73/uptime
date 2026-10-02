@@ -14,7 +14,6 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@uptime/shared": "workspace:*",
     "@base-ui/react": "1.8.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-devtools": "latest",
@@ -22,7 +21,9 @@
     "@tanstack/react-router": "latest",
     "@tanstack/react-router-devtools": "latest",
     "@tanstack/react-router-ssr-query": "1.167.3",
+    "@uptime/shared": "workspace:*",
     "better-auth": "1.7.6",
+    "date-fns": "4.4.0",
     "lucide-react": "1.48.0",
     "openapi-fetch": "0.17.0",
     "openapi-react-query": "0.5.4",

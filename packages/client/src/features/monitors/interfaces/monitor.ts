@@ -5,3 +5,4 @@ export type MonitorDetail =
 export type MonitorList =
   paths["/api/monitors"]["get"]["responses"]["200"]["content"]["application/json"]
 export type MonitorListItem = MonitorList[number]
+export type MonitorCheck = MonitorDetail["checks"][number]

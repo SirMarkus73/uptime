@@ -1,8 +1,8 @@
 import { TrashIcon } from "lucide-react"
 import { Button } from "#/core/design-system/button"
 import { Spinner } from "#/core/design-system/spinner"
-import { useDeleteMonitor } from "../api/mutations"
-import type { MonitorDetail } from "../interfaces/monitor"
+import { useDeleteMonitor } from "../../api/mutations"
+import type { MonitorDetail } from "../../interfaces/monitor"
 
 type DeleteMonitorButtonProps = {
   monitorId: MonitorDetail["id"]

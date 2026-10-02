@@ -1,5 +1,5 @@
 import { Button } from "#/core/design-system/button"
-import { useRunMonitor } from "../api/mutations"
+import { useRunMonitor } from "../../api/mutations"
 
 type RunMonitorButtonProps = {
   monitorId: string

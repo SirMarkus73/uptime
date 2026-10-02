@@ -43,3 +43,13 @@ body {
   font-family: var(--font-mono);
   background-color: var(--color-neutral-950);
 }
+
+/* Panel de LEDs: rejilla de puntos del color del texto (`text-*`) */
+@utility bg-leds {
+  background-image: radial-gradient(
+    circle,
+    currentColor 1.25px,
+    transparent 1.75px
+  );
+  background-size: 5px 5px;
+}
