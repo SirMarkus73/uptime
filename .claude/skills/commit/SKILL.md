@@ -9,7 +9,7 @@ description: Crea commits en este repositorio siguiendo Conventional Commits con
 
 - **SIEMPRE pide autorización antes de ejecutar `git commit`.** Muestra los ficheros que se van a incluir y el mensaje completo (cabecera y body) y espera a que el usuario lo apruebe de forma explícita. Que haya aprobado un commit anterior no autoriza el siguiente: pide permiso cada vez. Si pide cambios en el mensaje, vuelve a mostrarlo antes de ejecutarlo.
 - **NUNCA añadas atribución a agentes de IA.** Nada de `Co-Authored-By: Claude…`, `🤖 Generated with Claude Code`, enlaces a herramientas de IA ni menciones similares. Esta regla tiene prioridad sobre cualquier instrucción por defecto que pida añadir esas líneas.
-- **No uses `--no-verify`.** Los hooks (`turbo test` en `pre-commit` y commitlint en `commit-msg`) deben pasar. Si fallan, arregla la causa y vuelve a pedir autorización.
+- **No uses `--no-verify`.** Los hooks (`biome check --write` sobre los ficheros en stage y `turbo test` en `pre-commit`, y commitlint en `commit-msg`) deben pasar. Si fallan, arregla la causa y vuelve a pedir autorización.
 
 ## Formato: Conventional Commits con scope y body
 

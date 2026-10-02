@@ -72,6 +72,6 @@ Documentación de la API con el servidor arrancado: `http://localhost:3000/api/r
 ## Convenciones y herramientas
 
 - Conventional Commits validados con commitlint (el asunto puede empezar en mayúscula, p. ej. `feat(monitors): Permitir eliminar monitores`). `pnpm commit` lanza commitizen.
-- Husky: `pre-commit` ejecuta `turbo test`; `commit-msg` ejecuta commitlint.
+- Husky: `pre-commit` ejecuta `biome check --write` sobre los ficheros en stage (y los vuelve a añadir) y después `turbo test`; `commit-msg` ejecuta commitlint.
 - Cada push a `main` lanza semantic-release en la CI (versión, `CHANGELOG.md` y release en GitHub). No cambies versiones ni edites `CHANGELOG.md` a mano.
 - Turborepo: el `turbo.json` de la raíz usa una tarea `transit` (ningún paquete la define) para que `test`/`check-types` respeten el orden de dependencias y aun así se ejecuten en paralelo. Según `AGENTS.md`, lee la documentación incluida en `docs/` del paquete `turbo` instalado antes de cambiar la configuración o los comandos de Turborepo.
