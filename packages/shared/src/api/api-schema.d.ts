@@ -453,6 +453,18 @@ export interface operations {
                     };
                 };
             };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 404;
+                    };
+                };
+            };
             /** @description Too Many Requests */
             429: {
                 headers: {
@@ -618,6 +630,18 @@ export interface operations {
                         message: string;
                         /** @enum {number} */
                         statusCode: 401;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 404;
                     };
                 };
             };

@@ -60,16 +60,21 @@ describe("MonitorsController", () => {
   })
 
   describe("runMonitor", () => {
+    const found: MonitorDetailDto = {
+      id: "monitor-1",
+      name: "Example",
+      webPage: "https://example.com",
+      createdAt: "2026-09-30T00:00:00.000Z",
+      ownedBy: "user-1",
+      checks: [],
+    }
+
     test("runs the monitor and returns it with the new check", async ({
       monitorsService,
       controller,
     }) => {
       const ranMonitor: MonitorDetailDto = {
-        id: "monitor-1",
-        name: "Example",
-        webPage: "https://example.com",
-        createdAt: "2026-09-30T00:00:00.000Z",
-        ownedBy: "user-1",
+        ...found,
         checks: [
           {
             id: "check-1",
@@ -81,25 +86,45 @@ describe("MonitorsController", () => {
           },
         ],
       }
+      monitorsService.getMonitor.mockResolvedValueOnce(found)
       monitorsService.runMonitor.mockResolvedValueOnce(ranMonitor)
 
-      const result = await controller.runMonitor("monitor-1")
+      const result = await controller.runMonitor("monitor-1", session)
 
+      expect(monitorsService.getMonitor).toHaveBeenCalledExactlyOnceWith({
+        id: "monitor-1",
+      })
       expect(monitorsService.runMonitor).toHaveBeenCalledExactlyOnceWith({
         id: "monitor-1",
       })
       expect(result).toEqual(ranMonitor)
     })
 
-    test("propagates service errors", async ({
+    test("throws NotFoundException and skips the run when the monitor belongs to another user", async ({
       monitorsService,
       controller,
     }) => {
-      monitorsService.runMonitor.mockRejectedValueOnce(new NotFoundException())
+      monitorsService.getMonitor.mockResolvedValueOnce({
+        ...found,
+        ownedBy: "user-2",
+      })
 
-      await expect(controller.runMonitor("missing")).rejects.toBeInstanceOf(
-        NotFoundException,
-      )
+      await expect(
+        controller.runMonitor("monitor-1", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.runMonitor).not.toHaveBeenCalled()
+    })
+
+    test("propagates service errors and skips the run", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockRejectedValueOnce(new NotFoundException())
+
+      await expect(
+        controller.runMonitor("missing", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.runMonitor).not.toHaveBeenCalled()
     })
   })
 
@@ -124,6 +149,24 @@ describe("MonitorsController", () => {
         id: "monitor-1",
       })
       expect(result).toEqual(found)
+    })
+
+    test("throws NotFoundException when the monitor belongs to another user", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce({
+        id: "monitor-1",
+        name: "Example",
+        webPage: "https://example.com",
+        createdAt: "2026-09-30T00:00:00.000Z",
+        ownedBy: "user-2",
+        checks: [],
+      })
+
+      await expect(
+        controller.getMonitor("monitor-1", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
     })
 
     test("propagates service errors", async ({
