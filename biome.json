@@ -6,7 +6,12 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": false
+    "ignoreUnknown": false,
+    "includes": [
+      "**",
+      "!packages/client/src/routeTree.gen.ts",
+      "!packages/shared/src/api/api-schema.d.ts"
+    ]
   },
   "formatter": {
     "enabled": true,
