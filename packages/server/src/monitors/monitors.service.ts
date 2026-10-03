@@ -5,9 +5,8 @@ import {
   NotFoundException,
 } from "@nestjs/common"
 import { Queue } from "bullmq"
-import { eq } from "drizzle-orm"
 import { db } from "../db/index.js"
-import { check, monitor } from "../db/schema.js"
+import { check } from "../db/schema.js"
 import { UptimeService } from "../uptime/uptime.service.js"
 import { ActivateMonitorSchedulerDto } from "./dto/activate-monitor-scheduler.dto.js"
 import { CreateMonitorDto } from "./dto/create-monitor.dto.js"
@@ -21,8 +20,7 @@ import {
   monitorSchedulerId,
   RunMonitorJobData,
 } from "./monitors.queue.js"
-
-const LAST_CHECKS_LIMIT = 5
+import { MonitorsRepository } from "./monitors.repository.js"
 
 @Injectable()
 export class MonitorsService {
@@ -30,6 +28,7 @@ export class MonitorsService {
     @InjectQueue(MONITORS_QUEUE)
     private readonly monitorsQueue: Queue<RunMonitorJobData>,
     private readonly uptimeService: UptimeService,
+    private readonly monitorRepository: MonitorsRepository,
   ) {}
 
   private async getMonitorScheduler(monitorId: string) {
@@ -86,33 +85,19 @@ export class MonitorsService {
     let createdMonitor: MonitorDetailDto
 
     try {
-      const [result] = await db
-        .insert(monitor)
-        .values({
-          ownedBy,
-          webPage,
-          name,
-          executeEveryMinutes,
-        })
-        .returning({
-          id: monitor.id,
-          name: monitor.name,
-          webPage: monitor.webPage,
-          createdAt: monitor.createdAt,
-          ownedBy: monitor.ownedBy,
-          executeEveryMinutes: monitor.executeEveryMinutes,
-        })
+      const result = await this.monitorRepository.create({
+        ownedBy,
+        webPage,
+        name,
+        executeEveryMinutes,
+      })
 
       if (!result) {
-        throw new InternalServerErrorException("Failed to create monitor")
+        throw new InternalServerErrorException()
       }
 
       createdMonitor = { ...result, checks: [], hasScheduler: false }
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error
-      }
-
+    } catch {
       throw new InternalServerErrorException(`Failed to create monitor`)
     }
 
@@ -126,57 +111,31 @@ export class MonitorsService {
 
   async getMonitor({ id }: GetMonitorDto): Promise<MonitorDetailDto> {
     const scheduler = await this.getMonitorScheduler(id)
+    let monitor = null
 
-    const result = await db.query.monitor.findFirst({
-      where: {
-        id,
-      },
-      with: {
-        checks: {
-          limit: LAST_CHECKS_LIMIT,
-          orderBy: {
-            checkedAt: "desc",
-          },
-        },
-      },
-    })
+    try {
+      monitor = await this.monitorRepository.findWithChecks(id)
+    } catch {
+      throw new InternalServerErrorException()
+    }
 
-    if (!result) {
+    if (!monitor) {
       throw new NotFoundException()
     }
 
     return {
-      ...result,
+      ...monitor,
       hasScheduler: !!scheduler,
     }
   }
 
   async listMonitors({ ownedBy }: ListMonitorsDto): Promise<MonitorListDto> {
-    const monitors = await db.query.monitor.findMany({
-      columns: {
-        id: true,
-        name: true,
-        createdAt: true,
-        ownedBy: true,
-        webPage: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      where: {
-        ownedBy,
-      },
-      extras: {
-        isUp: (m, { sql }) =>
-          sql<boolean | null>`SELECT ${check.isUp} 
-            FROM ${check} 
-            WHERE ${check.monitorId} = ${m.id} 
-            ORDER BY ${check.checkedAt} DESC 
-            LIMIT 1
-            `,
-      },
-    })
-
+    let monitors = null
+    try {
+      monitors = await this.monitorRepository.findManyWithStatus(ownedBy)
+    } catch {
+      throw new InternalServerErrorException()
+    }
     return monitors
   }
 
@@ -204,10 +163,7 @@ export class MonitorsService {
 
       return {
         ...monitor,
-        checks: [
-          checkInsertResult,
-          ...monitor.checks.slice(0, LAST_CHECKS_LIMIT - 1),
-        ],
+        checks: [checkInsertResult, ...monitor.checks.slice(0, 4)],
       }
     } catch (error) {
       if (error instanceof InternalServerErrorException) {
@@ -220,10 +176,11 @@ export class MonitorsService {
 
   async deleteMonitor({ id }: DeleteMonitorDto): Promise<void> {
     await this.deleteMonitorScheduler(id)
-
-    const deletion = await db.delete(monitor).where(eq(monitor.id, id))
-
-    if (deletion.rowCount === 0) throw new NotFoundException()
+    try {
+      await this.monitorRepository.destroyMonitor(id)
+    } catch {
+      throw new InternalServerErrorException()
+    }
   }
 
   async activateMonitorScheduler({

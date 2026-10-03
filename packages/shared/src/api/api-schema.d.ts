@@ -299,6 +299,18 @@ export interface operations {
                     };
                 };
             };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
+                    };
+                };
+            };
         };
     };
     MonitorsController_createMonitor: {

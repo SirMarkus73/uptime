@@ -3,7 +3,7 @@ import { Test } from "@nestjs/testing"
 import type { Job } from "bullmq"
 import { test as baseTest } from "vitest"
 import type { MonitorDetailDto } from "./dto/monitor.dto.js"
-import { MonitorConsumer } from "./monitors.consumer.js"
+import { MonitorsConsumer } from "./monitors.consumer.js"
 import type { RunMonitorJobData } from "./monitors.queue.js"
 import { MonitorsService } from "./monitors.service.js"
 
@@ -16,12 +16,12 @@ const test = baseTest
   .extend("consumer", async ({ monitorsService }) => {
     const module = await Test.createTestingModule({
       providers: [
-        MonitorConsumer,
+        MonitorsConsumer,
         { provide: MonitorsService, useValue: monitorsService },
       ],
     }).compile()
 
-    return module.get(MonitorConsumer)
+    return module.get(MonitorsConsumer)
   })
 
 describe("MonitorConsumer", () => {

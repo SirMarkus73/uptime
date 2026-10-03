@@ -2,9 +2,8 @@ import { getQueueToken } from "@nestjs/bullmq"
 import { InternalServerErrorException, NotFoundException } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import type { Queue } from "bullmq"
-import { eq } from "drizzle-orm"
 import { test as baseTest } from "vitest"
-import { check, monitor } from "../db/schema.js"
+import { check } from "../db/schema.js"
 import { CheckStateResultDto } from "../uptime/dto/check-state.dto.js"
 import { UptimeService } from "../uptime/uptime.service.js"
 import { CreateMonitorDto } from "./dto/create-monitor.dto.js"
@@ -15,26 +14,20 @@ import {
   monitorListSchema,
 } from "./dto/monitor.dto.js"
 import { MONITORS_QUEUE, type RunMonitorJobData } from "./monitors.queue.js"
+import { MonitorsRepository } from "./monitors.repository.js"
 import { MonitorsService } from "./monitors.service.js"
 
-const { dbMock, returning, values, where } = vi.hoisted(() => {
+// Solo runMonitor usa la base de datos directamente (para guardar la
+// comprobación); el resto pasa por MonitorsRepository.
+const { dbMock, returning, values } = vi.hoisted(() => {
   const returning = vi.fn()
   const values = vi.fn(() => ({ returning }))
-  const where = vi.fn()
 
   return {
     returning,
     values,
-    where,
     dbMock: {
       insert: vi.fn(() => ({ values })),
-      delete: vi.fn(() => ({ where })),
-      query: {
-        monitor: {
-          findFirst: vi.fn(),
-          findMany: vi.fn(),
-        },
-      },
     },
   }
 })
@@ -47,6 +40,12 @@ const PREVIOUS_CHECK_ID = "7d6c5b4a-3e2f-4a1b-9c8d-7e6f5a4b3c2d"
 const SCHEDULER_ID = `monitor:${MONITOR_ID}`
 
 type MonitorsQueue = Queue<RunMonitorJobData>
+type StoredMonitor = NonNullable<
+  Awaited<ReturnType<MonitorsRepository["create"]>>
+>
+type StoredMonitorWithChecks = NonNullable<
+  Awaited<ReturnType<MonitorsRepository["findWithChecks"]>>
+>
 type JobScheduler = Awaited<ReturnType<MonitorsQueue["getJobScheduler"]>>
 
 const scheduler: JobScheduler = {
@@ -73,17 +72,27 @@ const test = baseTest
     upsertJobScheduler: vi.fn<MonitorsQueue["upsertJobScheduler"]>(),
     removeJobScheduler: vi.fn<MonitorsQueue["removeJobScheduler"]>(),
   }))
-  .extend("service", async ({ uptimeService, monitorsQueue }) => {
-    const module = await Test.createTestingModule({
-      providers: [
-        MonitorsService,
-        { provide: UptimeService, useValue: uptimeService },
-        { provide: getQueueToken(MONITORS_QUEUE), useValue: monitorsQueue },
-      ],
-    }).compile()
+  .extend("monitorsRepository", () => ({
+    create: vi.fn<MonitorsRepository["create"]>(),
+    findWithChecks: vi.fn<MonitorsRepository["findWithChecks"]>(),
+    findManyWithStatus: vi.fn<MonitorsRepository["findManyWithStatus"]>(),
+    destroyMonitor: vi.fn<MonitorsRepository["destroyMonitor"]>(),
+  }))
+  .extend(
+    "service",
+    async ({ uptimeService, monitorsQueue, monitorsRepository }) => {
+      const module = await Test.createTestingModule({
+        providers: [
+          MonitorsService,
+          { provide: UptimeService, useValue: uptimeService },
+          { provide: getQueueToken(MONITORS_QUEUE), useValue: monitorsQueue },
+          { provide: MonitorsRepository, useValue: monitorsRepository },
+        ],
+      }).compile()
 
-    return module.get(MonitorsService)
-  })
+      return module.get(MonitorsService)
+    },
+  )
 
 describe("MonitorsService", () => {
   test("should be defined", ({ service }) => {
@@ -98,7 +107,7 @@ describe("MonitorsService", () => {
       executeEveryMinutes: 10,
     }
 
-    const created: Omit<MonitorDetailDto, "checks" | "hasScheduler"> = {
+    const created: StoredMonitor = {
       id: MONITOR_ID,
       name: input.name,
       webPage: input.webPage,
@@ -107,25 +116,16 @@ describe("MonitorsService", () => {
       executeEveryMinutes: 10,
     }
 
-    test("inserts the monitor, schedules it and returns the created row", async ({
-      db,
+    test("creates the monitor, schedules it and returns it", async ({
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
-      returning.mockResolvedValueOnce([created])
+      monitorsRepository.create.mockResolvedValueOnce(created)
 
       const result = await service.createMonitor(input)
 
-      expect(db.insert).toHaveBeenCalledExactlyOnceWith(monitor)
-      expect(values).toHaveBeenCalledExactlyOnceWith(input)
-      expect(returning).toHaveBeenCalledExactlyOnceWith({
-        id: monitor.id,
-        name: monitor.name,
-        webPage: monitor.webPage,
-        createdAt: monitor.createdAt,
-        ownedBy: monitor.ownedBy,
-        executeEveryMinutes: monitor.executeEveryMinutes,
-      })
+      expect(monitorsRepository.create).toHaveBeenCalledExactlyOnceWith(input)
       expect(monitorsQueue.upsertJobScheduler).toHaveBeenCalledExactlyOnceWith(
         SCHEDULER_ID,
         { every: 10 * 60 * 1000 },
@@ -134,6 +134,7 @@ describe("MonitorsService", () => {
       expect(result).toEqual(expect.schemaMatching(monitorDetailSchema))
       expect(result).toEqual<MonitorDetailDto>({
         ...created,
+        createdAt: "2026-09-30T00:00:00.000Z",
         checks: [],
         hasScheduler: true,
       })
@@ -141,12 +142,16 @@ describe("MonitorsService", () => {
 
     test("schedules the monitor with the stored interval when it is omitted", async ({
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
       // El tipo del DTO lo exige, pero el body puede omitirlo y entonces la
       // base de datos pone el valor por defecto (5 minutos).
       const { executeEveryMinutes: _, ...withoutInterval } = input
-      returning.mockResolvedValueOnce([{ ...created, executeEveryMinutes: 5 }])
+      monitorsRepository.create.mockResolvedValueOnce({
+        ...created,
+        executeEveryMinutes: 5,
+      })
 
       await service.createMonitor(withoutInterval as CreateMonitorDto)
 
@@ -159,9 +164,10 @@ describe("MonitorsService", () => {
 
     test("throws InternalServerErrorException and skips the scheduler when nothing is returned", async ({
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
-      returning.mockResolvedValueOnce([])
+      monitorsRepository.create.mockResolvedValueOnce(undefined)
 
       await expect(service.createMonitor(input)).rejects.toBeInstanceOf(
         InternalServerErrorException,
@@ -171,9 +177,12 @@ describe("MonitorsService", () => {
 
     test("throws InternalServerErrorException and skips the scheduler when the insert fails", async ({
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
-      returning.mockRejectedValueOnce(new Error("connection lost"))
+      monitorsRepository.create.mockRejectedValueOnce(
+        new Error("connection lost"),
+      )
 
       await expect(service.createMonitor(input)).rejects.toBeInstanceOf(
         InternalServerErrorException,
@@ -183,9 +192,10 @@ describe("MonitorsService", () => {
 
     test("throws InternalServerErrorException when the scheduler cannot be created", async ({
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
-      returning.mockResolvedValueOnce([created])
+      monitorsRepository.create.mockResolvedValueOnce(created)
       monitorsQueue.upsertJobScheduler.mockRejectedValueOnce(
         new Error("connection lost"),
       )
@@ -197,7 +207,7 @@ describe("MonitorsService", () => {
   })
 
   describe("getMonitor", () => {
-    const found: Omit<MonitorDetailDto, "hasScheduler"> = {
+    const found: StoredMonitorWithChecks = {
       id: MONITOR_ID,
       name: "Example",
       webPage: "https://example.com",
@@ -212,62 +222,67 @@ describe("MonitorsService", () => {
           responseTimeMs: 12.5,
           errorCode: null,
           checkedAt: "2026-09-30T00:00:01.000Z",
+          monitorId: MONITOR_ID,
         },
       ],
     }
 
-    test("returns the monitor with its last 5 checks and its scheduler", async ({
-      db,
+    test("returns the monitor with its last checks and its scheduler", async ({
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
       monitorsQueue.getJobScheduler.mockResolvedValueOnce(scheduler)
-      db.query.monitor.findFirst.mockResolvedValueOnce(found)
+      monitorsRepository.findWithChecks.mockResolvedValueOnce(found)
 
       const result = await service.getMonitor({ id: MONITOR_ID })
 
       expect(monitorsQueue.getJobScheduler).toHaveBeenCalledExactlyOnceWith(
         SCHEDULER_ID,
       )
-      expect(db.query.monitor.findFirst).toHaveBeenCalledExactlyOnceWith({
-        where: { id: MONITOR_ID },
-        with: {
-          checks: {
-            limit: 5,
-            orderBy: { checkedAt: "desc" },
-          },
-        },
-      })
+      expect(monitorsRepository.findWithChecks).toHaveBeenCalledExactlyOnceWith(
+        MONITOR_ID,
+      )
       expect(result).toEqual(expect.schemaMatching(monitorDetailSchema))
-      expect(result).toEqual<MonitorDetailDto>({ ...found, hasScheduler: true })
+      expect(result).toEqual({ ...found, hasScheduler: true })
     })
 
     test("returns hasScheduler false when the monitor is not scheduled", async ({
-      db,
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
       monitorsQueue.getJobScheduler.mockResolvedValueOnce(undefined)
-      db.query.monitor.findFirst.mockResolvedValueOnce(found)
+      monitorsRepository.findWithChecks.mockResolvedValueOnce(found)
 
       const result = await service.getMonitor({ id: MONITOR_ID })
 
       expect(result).toEqual(expect.schemaMatching(monitorDetailSchema))
-      expect(result).toEqual<MonitorDetailDto>({
-        ...found,
-        hasScheduler: false,
-      })
+      expect(result).toEqual({ ...found, hasScheduler: false })
     })
 
     test("throws NotFoundException when the monitor does not exist", async ({
-      db,
+      monitorsRepository,
       service,
     }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(undefined)
+      monitorsRepository.findWithChecks.mockResolvedValueOnce(undefined)
 
       await expect(
         service.getMonitor({ id: MONITOR_ID }),
       ).rejects.toBeInstanceOf(NotFoundException)
+    })
+
+    test("throws InternalServerErrorException when the monitor cannot be read", async ({
+      monitorsRepository,
+      service,
+    }) => {
+      monitorsRepository.findWithChecks.mockRejectedValueOnce(
+        new Error("connection lost"),
+      )
+
+      await expect(
+        service.getMonitor({ id: MONITOR_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
     })
 
     test("throws InternalServerErrorException when the scheduler cannot be read", async ({
@@ -285,7 +300,10 @@ describe("MonitorsService", () => {
   })
 
   describe("listMonitors", () => {
-    test("returns the monitors owned by the user", async ({ db, service }) => {
+    test("returns the monitors owned by the user", async ({
+      monitorsRepository,
+      service,
+    }) => {
       const monitors: MonitorListDto = [
         {
           id: MONITOR_ID,
@@ -304,30 +322,45 @@ describe("MonitorsService", () => {
           ownedBy: "user-1",
         },
       ]
-      db.query.monitor.findMany.mockResolvedValueOnce(monitors)
+      monitorsRepository.findManyWithStatus.mockResolvedValueOnce(monitors)
 
       const result = await service.listMonitors({ ownedBy: "user-1" })
 
-      expect(db.query.monitor.findMany).toHaveBeenCalledOnce()
+      expect(
+        monitorsRepository.findManyWithStatus,
+      ).toHaveBeenCalledExactlyOnceWith("user-1")
       expect(result).toEqual(expect.schemaMatching(monitorListSchema))
       expect(result).toEqual(monitors)
     })
 
     test("returns an empty list when the user has no monitors", async ({
-      db,
+      monitorsRepository,
       service,
     }) => {
-      db.query.monitor.findMany.mockResolvedValueOnce([])
+      monitorsRepository.findManyWithStatus.mockResolvedValueOnce([])
 
       const result = await service.listMonitors({ ownedBy: "user-1" })
 
       expect(result).toEqual(expect.schemaMatching(monitorListSchema))
       expect(result).toEqual([])
     })
+
+    test("throws InternalServerErrorException when the monitors cannot be read", async ({
+      monitorsRepository,
+      service,
+    }) => {
+      monitorsRepository.findManyWithStatus.mockRejectedValueOnce(
+        new Error("connection lost"),
+      )
+
+      await expect(
+        service.listMonitors({ ownedBy: "user-1" }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
+    })
   })
 
   describe("runMonitor", () => {
-    const found: Omit<MonitorDetailDto, "hasScheduler"> = {
+    const found: StoredMonitorWithChecks = {
       id: MONITOR_ID,
       name: "Example",
       webPage: "https://example.com",
@@ -342,6 +375,7 @@ describe("MonitorsService", () => {
           responseTimeMs: 40.1,
           errorCode: null,
           checkedAt: "2026-09-29T00:00:00.000Z",
+          monitorId: MONITOR_ID,
         },
       ],
     }
@@ -359,24 +393,19 @@ describe("MonitorsService", () => {
 
     test("checks the web page and stores the result", async ({
       db,
+      monitorsRepository,
       uptimeService,
       service,
     }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(found)
+      monitorsRepository.findWithChecks.mockResolvedValueOnce(found)
       uptimeService.checkState.mockResolvedValueOnce(checkResult)
       returning.mockResolvedValueOnce([inserted])
 
       const result = await service.runMonitor({ id: MONITOR_ID })
 
-      expect(db.query.monitor.findFirst).toHaveBeenCalledExactlyOnceWith({
-        where: { id: MONITOR_ID },
-        with: {
-          checks: {
-            limit: 5,
-            orderBy: { checkedAt: "desc" },
-          },
-        },
-      })
+      expect(monitorsRepository.findWithChecks).toHaveBeenCalledExactlyOnceWith(
+        MONITOR_ID,
+      )
       expect(uptimeService.checkState).toHaveBeenCalledExactlyOnceWith(
         found.webPage,
       )
@@ -386,7 +415,7 @@ describe("MonitorsService", () => {
         monitorId: MONITOR_ID,
       })
       expect(result).toEqual(expect.schemaMatching(monitorDetailSchema))
-      expect(result).toEqual<MonitorDetailDto>({
+      expect(result).toEqual({
         ...found,
         checks: [inserted, ...found.checks],
         hasScheduler: false,
@@ -394,12 +423,12 @@ describe("MonitorsService", () => {
     })
 
     test("keeps only the last 5 checks, dropping the oldest one", async ({
-      db,
+      monitorsRepository,
       uptimeService,
       service,
     }) => {
       // Ordered newest first, as getMonitor returns them.
-      const previousChecks: MonitorDetailDto["checks"] = Array.from(
+      const previousChecks: StoredMonitorWithChecks["checks"] = Array.from(
         { length: 5 },
         (_, i) => ({
           id: `00000000-0000-4000-8000-00000000000${i}`,
@@ -408,13 +437,13 @@ describe("MonitorsService", () => {
           responseTimeMs: 40.1,
           errorCode: null,
           checkedAt: `2026-09-29T0${4 - i}:00:00.000Z`,
+          monitorId: MONITOR_ID,
         }),
       )
-      const foundWithFullHistory: typeof found = {
+      monitorsRepository.findWithChecks.mockResolvedValueOnce({
         ...found,
         checks: previousChecks,
-      }
-      db.query.monitor.findFirst.mockResolvedValueOnce(foundWithFullHistory)
+      })
       uptimeService.checkState.mockResolvedValueOnce(checkResult)
       returning.mockResolvedValueOnce([inserted])
 
@@ -426,10 +455,11 @@ describe("MonitorsService", () => {
 
     test("throws NotFoundException and skips the check when the monitor does not exist", async ({
       db,
+      monitorsRepository,
       uptimeService,
       service,
     }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(undefined)
+      monitorsRepository.findWithChecks.mockResolvedValueOnce(undefined)
 
       await expect(
         service.runMonitor({ id: MONITOR_ID }),
@@ -438,12 +468,29 @@ describe("MonitorsService", () => {
       expect(db.insert).not.toHaveBeenCalled()
     })
 
-    test("throws InternalServerErrorException when the check is not stored", async ({
+    test("throws InternalServerErrorException and skips the check when the monitor cannot be read", async ({
       db,
+      monitorsRepository,
       uptimeService,
       service,
     }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(found)
+      monitorsRepository.findWithChecks.mockRejectedValueOnce(
+        new Error("connection lost"),
+      )
+
+      await expect(
+        service.runMonitor({ id: MONITOR_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
+      expect(uptimeService.checkState).not.toHaveBeenCalled()
+      expect(db.insert).not.toHaveBeenCalled()
+    })
+
+    test("throws InternalServerErrorException when the check is not stored", async ({
+      monitorsRepository,
+      uptimeService,
+      service,
+    }) => {
+      monitorsRepository.findWithChecks.mockResolvedValueOnce(found)
       uptimeService.checkState.mockResolvedValueOnce(checkResult)
       returning.mockResolvedValueOnce([])
 
@@ -453,11 +500,11 @@ describe("MonitorsService", () => {
     })
 
     test("throws InternalServerErrorException when the check insert fails", async ({
-      db,
+      monitorsRepository,
       uptimeService,
       service,
     }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(found)
+      monitorsRepository.findWithChecks.mockResolvedValueOnce(found)
       uptimeService.checkState.mockResolvedValueOnce(checkResult)
       returning.mockRejectedValueOnce(new Error("connection lost"))
 
@@ -469,11 +516,11 @@ describe("MonitorsService", () => {
 
   describe("deleteMonitor", () => {
     test("removes the scheduler and deletes the monitor with the given id", async ({
-      db,
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
-      where.mockResolvedValueOnce({ rowCount: 1 })
+      monitorsRepository.destroyMonitor.mockResolvedValueOnce()
 
       await expect(
         service.deleteMonitor({ id: MONITOR_ID }),
@@ -482,32 +529,31 @@ describe("MonitorsService", () => {
       expect(monitorsQueue.removeJobScheduler).toHaveBeenCalledExactlyOnceWith(
         SCHEDULER_ID,
       )
-      expect(db.delete).toHaveBeenCalledExactlyOnceWith(monitor)
-      expect(where).toHaveBeenCalledExactlyOnceWith(eq(monitor.id, MONITOR_ID))
-    })
-
-    test("throws NotFoundException when no monitor was deleted", async ({
-      service,
-    }) => {
-      where.mockResolvedValueOnce({ rowCount: 0 })
-
-      await expect(
-        service.deleteMonitor({ id: MONITOR_ID }),
-      ).rejects.toBeInstanceOf(NotFoundException)
-    })
-
-    test("propagates database errors", async ({ service }) => {
-      const error = new Error("connection lost")
-      where.mockRejectedValueOnce(error)
-
-      await expect(service.deleteMonitor({ id: MONITOR_ID })).rejects.toBe(
-        error,
+      expect(monitorsRepository.destroyMonitor).toHaveBeenCalledExactlyOnceWith(
+        MONITOR_ID,
+      )
+      // El scheduler se quita antes de borrar para no dejarlo huérfano.
+      expect(monitorsQueue.removeJobScheduler).toHaveBeenCalledBefore(
+        monitorsRepository.destroyMonitor,
       )
     })
 
+    test("throws InternalServerErrorException when the monitor cannot be deleted", async ({
+      monitorsRepository,
+      service,
+    }) => {
+      monitorsRepository.destroyMonitor.mockRejectedValueOnce(
+        new Error("connection lost"),
+      )
+
+      await expect(
+        service.deleteMonitor({ id: MONITOR_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
+    })
+
     test("throws InternalServerErrorException and keeps the monitor when the scheduler cannot be removed", async ({
-      db,
       monitorsQueue,
+      monitorsRepository,
       service,
     }) => {
       monitorsQueue.removeJobScheduler.mockRejectedValueOnce(
@@ -517,7 +563,7 @@ describe("MonitorsService", () => {
       await expect(
         service.deleteMonitor({ id: MONITOR_ID }),
       ).rejects.toBeInstanceOf(InternalServerErrorException)
-      expect(db.delete).not.toHaveBeenCalled()
+      expect(monitorsRepository.destroyMonitor).not.toHaveBeenCalled()
     })
   })
 

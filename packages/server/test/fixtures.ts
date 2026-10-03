@@ -14,7 +14,7 @@ import { CONFIG } from "../src/config/configuration.js"
 import { db } from "../src/db/index.js"
 import { monitor, user } from "../src/db/schema.js"
 import type { MonitorDetailDto } from "../src/monitors/dto/monitor.dto.js"
-import { MonitorConsumer } from "../src/monitors/monitors.consumer.js"
+import { MonitorsConsumer } from "../src/monitors/monitors.consumer.js"
 import {
   MONITORS_QUEUE,
   monitorSchedulerId,
@@ -49,7 +49,7 @@ export async function createTestApp({
   })
     // Sin worker: el scheduler lanza la primera ejecución en cuanto se crea,
     // y añadiría comprobaciones por su cuenta en mitad de los tests.
-    .overrideProvider(MonitorConsumer)
+    .overrideProvider(MonitorsConsumer)
     .useValue({})
 
   if (!throttle) {

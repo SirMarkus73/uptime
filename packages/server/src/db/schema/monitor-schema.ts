@@ -50,16 +50,24 @@ export const insertMonitorSchema = createInsertSchema(monitor, {
   name: (r) => r.min(1).max(30),
   executeEveryMinutes: (r) =>
     r.min(5, { error: "The minimum execution time is 5 minutes" }),
-})
+}).omit({ createdAt: true })
+
 export const selectMonitorSchema = createSelectSchema(monitor, {
   createdAt: () => z.iso.datetime(),
   webPage: () => z.httpUrl(),
   name: (r) => r.min(1).max(30),
 })
+
 export const updateMonitorSchema = createUpdateSchema(monitor, {
   createdAt: () => z.iso.datetime(),
   webPage: webPageSchema,
   name: (r) => r.min(1).max(30),
   executeEveryMinutes: (r) =>
     r.min(5, { error: "The minimum execution time is 5 minutes" }),
-})
+}).omit({ createdAt: true, ownedBy: true })
+
+// -- Types
+
+export type InsertMonitor = z.infer<typeof insertMonitorSchema>
+export type SelectMonitor = z.infer<typeof selectMonitorSchema>
+export type UpdateMonitor = z.infer<typeof updateMonitorSchema>

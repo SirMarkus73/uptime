@@ -98,6 +98,9 @@ export class MonitorsController {
   }
 
   @ApiAuthenticationErrors()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
   @ApiSerializedResponse({
     status: HttpStatus.OK,
     schema: monitorListSchema,

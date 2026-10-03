@@ -236,6 +236,19 @@ describe("MonitorsController", () => {
       })
       expect(result).toEqual(monitors)
     })
+
+    test("propagates service errors", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.listMonitors.mockRejectedValueOnce(
+        new InternalServerErrorException(),
+      )
+
+      await expect(controller.listMonitors(session)).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      )
+    })
   })
 
   describe("deleteMonitor", () => {

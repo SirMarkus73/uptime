@@ -4,7 +4,7 @@ import { MONITORS_QUEUE, RunMonitorJobData } from "./monitors.queue.js"
 import { MonitorsService } from "./monitors.service.js"
 
 @Processor(MONITORS_QUEUE)
-export class MonitorConsumer extends WorkerHost {
+export class MonitorsConsumer extends WorkerHost {
   constructor(private readonly monitorsService: MonitorsService) {
     super()
   }
