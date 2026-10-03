@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/SirMarkus73/uptime/compare/v1.3.0...v1.4.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **server:** Serializar las respuestas con el mismo esquema que las documenta ([5b9f824](https://github.com/SirMarkus73/uptime/commit/5b9f824e5a6e3770877b9c329d6c36a96fba8816))
+
+
+### Features
+
+* **monitors:** Ejecutar los monitores periódicamente según su intervalo ([473f734](https://github.com/SirMarkus73/uptime/commit/473f734b052abaaae86cca386796414d2be125a4))
+* **monitors:** Mostrar la evolución del tiempo de respuesta en el detalle del monitor ([1e154f4](https://github.com/SirMarkus73/uptime/commit/1e154f4f516426bbdb04c7b85a724e02cc9689e4))
+* **monitors:** Permitir configurar cada cuántos minutos se ejecuta un monitor ([7d3909d](https://github.com/SirMarkus73/uptime/commit/7d3909db556c7cae47a5fee6d5e2a1e194d3d5fa))
+
 # [1.3.0](https://github.com/SirMarkus73/uptime/compare/v1.2.0...v1.3.0) (2026-10-02)
 
 
