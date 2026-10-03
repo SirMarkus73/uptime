@@ -1,3 +1,8 @@
 {
-  "recommendations": ["vitest.explorer", "biomejs.biome", "vercel.turbo-vsc"]
+  "recommendations": [
+    "vitest.explorer",
+    "biomejs.biome",
+    "vercel.turbo-vsc",
+    "ms-ossdata.vscode-pgsql"
+  ]
 }
