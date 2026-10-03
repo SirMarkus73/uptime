@@ -9,14 +9,10 @@ import {
   Param,
   Post,
 } from "@nestjs/common"
-import {
-  ApiCreatedResponse,
-  ApiNoContentResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-} from "@nestjs/swagger"
+import { ApiNoContentResponse, ApiNotFoundResponse } from "@nestjs/swagger"
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth"
 import { ApiAuthenticationErrors } from "../shared/api-authentication-errors.js"
+import { ApiSerializedResponse } from "../shared/api-serialized-response.js"
 import { notFoundSchema } from "../shared/not-found-error.js"
 import {
   type CreateMonitorBodyDto,
@@ -36,7 +32,10 @@ export class MonitorsController {
   constructor(private readonly monitorService: MonitorsService) {}
 
   @ApiAuthenticationErrors()
-  @ApiCreatedResponse({ standardSchema: monitorDetailSchema })
+  @ApiSerializedResponse({
+    status: HttpStatus.CREATED,
+    schema: monitorDetailSchema,
+  })
   @Post()
   async createMonitor(
     @Session() session: UserSession,
@@ -54,7 +53,10 @@ export class MonitorsController {
 
   @ApiAuthenticationErrors()
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
-  @ApiCreatedResponse({ standardSchema: monitorDetailSchema })
+  @ApiSerializedResponse({
+    status: HttpStatus.CREATED,
+    schema: monitorDetailSchema,
+  })
   @Post(":monitorId/run")
   async runMonitor(
     @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
@@ -70,7 +72,7 @@ export class MonitorsController {
 
   @ApiAuthenticationErrors()
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
-  @ApiOkResponse({ standardSchema: monitorDetailSchema })
+  @ApiSerializedResponse({ status: HttpStatus.OK, schema: monitorDetailSchema })
   @Get(":monitorId")
   async getMonitor(
     @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
@@ -84,7 +86,10 @@ export class MonitorsController {
   }
 
   @ApiAuthenticationErrors()
-  @ApiOkResponse({ standardSchema: monitorListSchema })
+  @ApiSerializedResponse({
+    status: HttpStatus.OK,
+    schema: monitorListSchema,
+  })
   @Get()
   async listMonitors(@Session() session: UserSession): Promise<MonitorListDto> {
     const { user } = session

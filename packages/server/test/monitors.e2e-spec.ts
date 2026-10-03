@@ -98,6 +98,20 @@ describe("MonitorsController (e2e)", () => {
       expect(response.body).toMatchObject({ id: monitor.id, checks: [] })
     })
 
+    test("200 without the fields the schema does not declare", async ({
+      user,
+    }) => {
+      const monitor = await createMonitor(user)
+      await user.agent.post(`/api/monitors/${monitor.id}/run`).expect(201)
+
+      const response = await user.agent
+        .get(`/api/monitors/${monitor.id}`)
+        .expect(200)
+
+      expect(response.body.checks).toHaveLength(1)
+      expect(response.body.checks[0]).not.toHaveProperty("monitorId")
+    })
+
     test("400 when the id is not a uuid", async ({ user }) => {
       await user.agent.get("/api/monitors/not-a-uuid").expect(400)
     })

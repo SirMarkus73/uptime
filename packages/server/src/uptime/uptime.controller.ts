@@ -1,6 +1,7 @@
-import { Controller, Get, Query } from "@nestjs/common"
-import { ApiOkResponse, ApiOperation } from "@nestjs/swagger"
+import { Controller, Get, HttpStatus, Query } from "@nestjs/common"
+import { ApiOperation } from "@nestjs/swagger"
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth"
+import { ApiSerializedResponse } from "../shared/api-serialized-response.js"
 import {
   type CheckStateQueryDto,
   CheckStateResultDto,
@@ -14,8 +15,9 @@ export class UptimeController {
   constructor(private readonly uptimeService: UptimeService) {}
 
   @ApiOperation({ operationId: "checkUrl" })
-  @ApiOkResponse({
-    standardSchema: checkStateResultSchema,
+  @ApiSerializedResponse({
+    status: HttpStatus.OK,
+    schema: checkStateResultSchema,
   })
   @AllowAnonymous()
   @Get()
