@@ -1,6 +1,6 @@
 import { Skeleton } from "#/core/design-system/skeleton"
 
-// Misma silueta que MonitorOverview + MonitorCheckHistory para que no salte el layout.
+// Misma silueta que MonitorOverview + MonitorResponseTimeChart + MonitorCheckHistory para que no salte el layout.
 export function MonitorDetailSkeleton() {
   return (
     <div
@@ -22,6 +22,11 @@ export function MonitorDetailSkeleton() {
           <div className="bg-leds h-15 w-72 max-w-full text-neutral-800 motion-safe:animate-pulse sm:h-24 sm:w-md" />
           <Skeleton className="mt-5 h-5 w-80 max-w-full rounded-md" />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-5 w-40 rounded-md" />
+        <Skeleton className="h-56" />
       </div>
 
       <div className="flex flex-col gap-3">

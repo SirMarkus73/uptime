@@ -5,6 +5,7 @@ import { MonitorCheckHistory } from "../components/monitor-detail/monitor-check-
 import { MonitorDetailError } from "../components/monitor-detail/monitor-detail-error"
 import { MonitorDetailSkeleton } from "../components/monitor-detail/monitor-detail-skeleton"
 import { MonitorOverview } from "../components/monitor-detail/monitor-overview"
+import { MonitorResponseTimeChart } from "../components/monitor-detail/monitor-response-time-chart"
 import type { MonitorDetail } from "../interfaces/monitor"
 
 type MonitorDetailPageProps = {
@@ -33,6 +34,7 @@ export function MonitorDetailPage({ monitorId }: MonitorDetailPageProps) {
         {monitor ? (
           <div className="flex flex-col gap-12">
             <MonitorOverview monitor={monitor} />
+            <MonitorResponseTimeChart checks={monitor.checks} />
             <MonitorCheckHistory checks={monitor.checks} />
           </div>
         ) : error ? (
