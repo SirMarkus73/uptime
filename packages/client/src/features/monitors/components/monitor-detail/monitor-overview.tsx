@@ -2,9 +2,11 @@ import { ExternalLink } from "lucide-react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { Button } from "#/core/design-system/button"
 import { RelativeTime } from "#/core/design-system/relative-time"
+import { StatusDot } from "#/core/design-system/status-dot"
 import { formatResponseTime } from "#/core/lib/helpers"
 import { useRunMonitor } from "../../api/mutations"
 import type { MonitorCheck, MonitorDetail } from "../../interfaces/monitor"
+import { ToggleMonitorSchedulerButton } from "../monitor-action-buttons/toggle-monitor-scheduler-button"
 
 // El estado se pinta como un rótulo de LEDs: encendido en verde o rojo,
 // apagado en gris si aún no hay datos.
@@ -66,16 +68,25 @@ export function MonitorOverview({ monitor }: MonitorOverviewProps) {
         ? "up"
         : "down"
 
+  const hasScheduler = monitor.hasScheduler
+
   return (
     <section aria-labelledby="monitor-name" className="flex flex-col gap-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h1
-            id="monitor-name"
-            className="truncate text-2xl font-medium text-neutral-100"
-          >
-            {monitor.name}
-          </h1>
+          <div className="flex items-center gap-2">
+            {hasScheduler ? (
+              <StatusDot status="neutral" />
+            ) : (
+              <StatusDot status="unknown" />
+            )}
+            <h1
+              id="monitor-name"
+              className="truncate text-2xl font-medium text-neutral-100"
+            >
+              {monitor.name}
+            </h1>
+          </div>
           <a
             href={monitor.webPage}
             target="_blank"
@@ -88,9 +99,15 @@ export function MonitorOverview({ monitor }: MonitorOverviewProps) {
           </a>
         </div>
 
-        <Button onClick={runMonitor} disabled={isRunning} className="shrink-0">
-          {isRunning ? "Comprobando…" : "Comprobar ahora"}
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <ToggleMonitorSchedulerButton
+            monitorId={monitor.id}
+            hasScheduler={hasScheduler}
+          />
+          <Button onClick={runMonitor} disabled={isRunning}>
+            {isRunning ? "Comprobando…" : "Comprobar ahora"}
+          </Button>
+        </div>
       </div>
 
       <div>

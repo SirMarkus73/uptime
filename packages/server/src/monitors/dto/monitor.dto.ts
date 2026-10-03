@@ -8,6 +8,7 @@ export const monitorDetailSchema = selectMonitorSchema
     createdAt: true,
     webPage: true,
     ownedBy: true,
+    executeEveryMinutes: true,
   })
   .extend({
     checks: z.array(
@@ -20,6 +21,7 @@ export const monitorDetailSchema = selectMonitorSchema
         statusCode: true,
       }),
     ),
+    hasScheduler: z.boolean(),
   })
 
 export const monitorListSchema = z.array(

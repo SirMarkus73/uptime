@@ -1,3 +1,4 @@
+import type { MutationFunctionContext } from "@tanstack/react-query"
 import { toast } from "#/core/design-system/toast"
 import { createTempId } from "#/core/lib/temp-id"
 import { authClient } from "#/features/auth/auth-client"
@@ -250,6 +251,108 @@ export function useDeleteMonitor(monitorId: MonitorDetail["id"]) {
   return {
     ...mutation,
     mutate: () => {
+      mutation.mutate({ params: { path: { monitorId } } })
+    },
+  }
+}
+
+// Activar y desactivar el scheduler comparten callbacks: solo cambian el
+// valor optimista de `hasScheduler` y los textos del toast.
+function monitorSchedulerMutationOptions(
+  monitorId: MonitorDetail["id"],
+  hasScheduler: boolean,
+) {
+  const queryKey = monitorQueryOptions(monitorId).queryKey
+  const messages = hasScheduler
+    ? {
+        loading: "Activando las comprobaciones automáticas…",
+        success: "Comprobaciones automáticas activadas",
+        error: "Error al activar las comprobaciones automáticas",
+      }
+    : {
+        loading: "Pausando las comprobaciones automáticas…",
+        success: "Comprobaciones automáticas pausadas",
+        error: "Error al pausar las comprobaciones automáticas",
+      }
+
+  return {
+    onMutate: (_variables: unknown, { client }: MutationFunctionContext) => {
+      const previousMonitor = client.getQueryData(queryKey)
+
+      const toastId = toast.add({
+        title: previousMonitor?.name || messages.loading,
+        description: previousMonitor?.name && messages.loading,
+        type: "loading",
+      })
+
+      client.cancelQueries({ queryKey })
+      client.setQueryData(queryKey, (oldMonitor) =>
+        oldMonitor ? { ...oldMonitor, hasScheduler } : oldMonitor,
+      )
+
+      return { toastId, previousMonitor }
+    },
+    onSuccess: (
+      _data: unknown,
+      _variables: unknown,
+      {
+        toastId,
+        previousMonitor,
+      }: { toastId: string; previousMonitor?: MonitorDetail },
+    ) => {
+      toast.update(toastId, {
+        title: previousMonitor?.name || messages.success,
+        description: previousMonitor?.name && messages.success,
+        type: "success",
+      })
+    },
+    onError: (
+      _error: unknown,
+      _variables: unknown,
+      onMutateResult:
+        | { toastId: string; previousMonitor?: MonitorDetail }
+        | undefined,
+      { client }: MutationFunctionContext,
+    ) => {
+      if (!onMutateResult) return
+      const { toastId, previousMonitor } = onMutateResult
+
+      toast.update(toastId, {
+        title: previousMonitor?.name || messages.error,
+        description: previousMonitor?.name && messages.error,
+        type: "error",
+      })
+
+      if (previousMonitor) client.setQueryData(queryKey, previousMonitor)
+    },
+    onSettled: (
+      _data: unknown,
+      _error: unknown,
+      _variables: unknown,
+      _onMutateResult: unknown,
+      { client }: MutationFunctionContext,
+    ) => {
+      client.invalidateQueries({ queryKey })
+    },
+  }
+}
+
+export function useToggleMonitorScheduler(monitorId: MonitorDetail["id"]) {
+  const activation = $api.useMutation(
+    "post",
+    "/api/monitors/{monitorId}/scheduler",
+    monitorSchedulerMutationOptions(monitorId, true),
+  )
+  const deactivation = $api.useMutation(
+    "delete",
+    "/api/monitors/{monitorId}/scheduler",
+    monitorSchedulerMutationOptions(monitorId, false),
+  )
+
+  return {
+    isPending: activation.isPending || deactivation.isPending,
+    toggle: (hasScheduler: MonitorDetail["hasScheduler"]) => {
+      const mutation = hasScheduler ? deactivation : activation
       mutation.mutate({ params: { path: { monitorId } } })
     },
   }

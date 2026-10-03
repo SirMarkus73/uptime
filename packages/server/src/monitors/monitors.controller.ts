@@ -9,10 +9,15 @@ import {
   Param,
   Post,
 } from "@nestjs/common"
-import { ApiNoContentResponse, ApiNotFoundResponse } from "@nestjs/swagger"
+import {
+  ApiInternalServerErrorResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+} from "@nestjs/swagger"
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth"
 import { ApiAuthenticationErrors } from "../shared/api-authentication-errors.js"
 import { ApiSerializedResponse } from "../shared/api-serialized-response.js"
+import { internalServerErrorSchema } from "../shared/internal-server-error.js"
 import { notFoundSchema } from "../shared/not-found-error.js"
 import {
   type CreateMonitorBodyDto,
@@ -32,6 +37,9 @@ export class MonitorsController {
   constructor(private readonly monitorService: MonitorsService) {}
 
   @ApiAuthenticationErrors()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
   @ApiSerializedResponse({
     status: HttpStatus.CREATED,
     schema: monitorDetailSchema,
@@ -50,6 +58,9 @@ export class MonitorsController {
   }
 
   @ApiAuthenticationErrors()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
   @ApiSerializedResponse({
     status: HttpStatus.CREATED,
@@ -69,6 +80,9 @@ export class MonitorsController {
   }
 
   @ApiAuthenticationErrors()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
   @ApiSerializedResponse({ status: HttpStatus.OK, schema: monitorDetailSchema })
   @Get(":monitorId")
@@ -96,6 +110,9 @@ export class MonitorsController {
   }
 
   @ApiAuthenticationErrors()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
   @ApiNoContentResponse()
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -110,5 +127,51 @@ export class MonitorsController {
     if (monitor.ownedBy !== user.id) throw new NotFoundException()
 
     await this.monitorService.deleteMonitor({ id: monitorId })
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiAuthenticationErrors()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
+  @ApiNotFoundResponse({ standardSchema: notFoundSchema })
+  @ApiNoContentResponse()
+  @Post(":monitorId/scheduler")
+  async activateMonitorScheduler(
+    @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
+    @Session() session: UserSession,
+  ) {
+    const { user } = session
+    const monitor = await this.monitorService.getMonitor({ id: monitorId })
+
+    if (monitor.ownedBy !== user.id) throw new NotFoundException()
+
+    await this.monitorService.activateMonitorScheduler({
+      id: monitorId,
+      executeEveryMinutes: monitor.executeEveryMinutes,
+    })
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiAuthenticationErrors()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
+  @ApiNotFoundResponse({ standardSchema: notFoundSchema })
+  @ApiNoContentResponse()
+  @Delete(":monitorId/scheduler")
+  async deactivateMonitorScheduler(
+    @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
+    @Session() session: UserSession,
+  ) {
+    const { user } = session
+    const monitor = await this.monitorService.getMonitor({ id: monitorId })
+
+    if (monitor.ownedBy !== user.id) throw new NotFoundException()
+
+    await this.monitorService.deactivateMonitorScheduler({
+      id: monitorId,
+      executeEveryMinutes: monitor.executeEveryMinutes,
+    })
   }
 }

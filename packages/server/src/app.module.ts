@@ -1,3 +1,4 @@
+import { BullModule } from "@nestjs/bullmq"
 import { Module } from "@nestjs/common"
 import { APP_GUARD } from "@nestjs/core"
 import {
@@ -7,17 +8,20 @@ import {
   ThrottlerModule,
 } from "@nestjs/throttler"
 import { AuthModule } from "@thallesp/nestjs-better-auth"
+import { createPostgresBackend, setDefaultBackendFactory } from "bullmq"
 import { AppController } from "./app.controller.js"
 import { AppService } from "./app.service.js"
+import { CONFIG } from "./config/configuration.js"
 import { auth } from "./lib/auth.js"
 import { MonitorsModule } from "./monitors/monitors.module.js"
 import { UptimeModule } from "./uptime/uptime.module.js"
 
+// Poner postgres como backend de BullMQ
+setDefaultBackendFactory(createPostgresBackend)
+
 @Module({
   imports: [
     ThrottlerModule.forRoot({
-      // Cada throttler necesita su propio nombre: sin él ambos se llaman
-      // "default", comparten contador y cada petición cuenta dos veces.
       throttlers: [
         {
           name: "short",
@@ -31,9 +35,10 @@ import { UptimeModule } from "./uptime/uptime.module.js"
         },
       ],
     }),
-    // Cliente y API comparten origen, así que no hace falta CORS. Además el
-    // módulo no admite `trustedOrigins` como función si tiene que montarlo.
     AuthModule.forRoot({ auth, disableTrustedOriginsCors: true }),
+    BullModule.forRoot({
+      connection: { connectionString: CONFIG.DATABASE_URL, migrate: true },
+    }),
     UptimeModule,
     MonitorsModule,
   ],

@@ -4,6 +4,7 @@ allowBuilds:
   '@scarf/scarf': false
   "esbuild": true
   "lightningcss": true
+  msgpackr-extract: true
 minimumReleaseAgeExclude:
   - '@nestjs/common@12.1.2'
   - '@nestjs/core@12.1.2'

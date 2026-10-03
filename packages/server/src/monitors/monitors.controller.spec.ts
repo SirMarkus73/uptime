@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common"
+import { InternalServerErrorException, NotFoundException } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import type { UserSession } from "@thallesp/nestjs-better-auth"
 import { test as baseTest } from "vitest"
@@ -15,6 +15,10 @@ const test = baseTest
     getMonitor: vi.fn<MonitorsService["getMonitor"]>(),
     listMonitors: vi.fn<MonitorsService["listMonitors"]>(),
     deleteMonitor: vi.fn<MonitorsService["deleteMonitor"]>(),
+    activateMonitorScheduler:
+      vi.fn<MonitorsService["activateMonitorScheduler"]>(),
+    deactivateMonitorScheduler:
+      vi.fn<MonitorsService["deactivateMonitorScheduler"]>(),
   }))
   .extend("controller", async ({ monitorsService }) => {
     const module = await Test.createTestingModule({
@@ -41,7 +45,9 @@ describe("MonitorsController", () => {
         webPage: "https://example.com",
         createdAt: "2026-09-30T00:00:00.000Z",
         ownedBy: "user-1",
+        executeEveryMinutes: 5,
         checks: [],
+        hasScheduler: true,
       }
       monitorsService.createMonitor.mockResolvedValueOnce(created)
 
@@ -59,6 +65,23 @@ describe("MonitorsController", () => {
       })
       expect(result).toEqual(created)
     })
+
+    test("propagates service errors", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.createMonitor.mockRejectedValueOnce(
+        new InternalServerErrorException(),
+      )
+
+      await expect(
+        controller.createMonitor(session, {
+          name: "Example",
+          webPage: "https://example.com",
+          executeEveryMinutes: 10,
+        }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
+    })
   })
 
   describe("runMonitor", () => {
@@ -68,7 +91,9 @@ describe("MonitorsController", () => {
       webPage: "https://example.com",
       createdAt: "2026-09-30T00:00:00.000Z",
       ownedBy: "user-1",
+      executeEveryMinutes: 5,
       checks: [],
+      hasScheduler: true,
     }
 
     test("runs the monitor and returns it with the new check", async ({
@@ -141,7 +166,9 @@ describe("MonitorsController", () => {
         webPage: "https://example.com",
         createdAt: "2026-09-30T00:00:00.000Z",
         ownedBy: "user-1",
+        executeEveryMinutes: 5,
         checks: [],
+        hasScheduler: true,
       }
       monitorsService.getMonitor.mockResolvedValueOnce(found)
 
@@ -163,7 +190,9 @@ describe("MonitorsController", () => {
         webPage: "https://example.com",
         createdAt: "2026-09-30T00:00:00.000Z",
         ownedBy: "user-2",
+        executeEveryMinutes: 5,
         checks: [],
+        hasScheduler: true,
       })
 
       await expect(
@@ -216,7 +245,9 @@ describe("MonitorsController", () => {
       webPage: "https://example.com",
       createdAt: "2026-09-30T00:00:00.000Z",
       ownedBy: "user-1",
+      executeEveryMinutes: 5,
       checks: [],
+      hasScheduler: true,
     }
 
     test("deletes the monitor owned by the session user", async ({
@@ -262,6 +293,162 @@ describe("MonitorsController", () => {
         controller.deleteMonitor("missing", session),
       ).rejects.toBeInstanceOf(NotFoundException)
       expect(monitorsService.deleteMonitor).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("activateMonitorScheduler", () => {
+    const found: MonitorDetailDto = {
+      id: "monitor-1",
+      name: "Example",
+      webPage: "https://example.com",
+      createdAt: "2026-09-30T00:00:00.000Z",
+      ownedBy: "user-1",
+      executeEveryMinutes: 15,
+      checks: [],
+      hasScheduler: false,
+    }
+
+    test("activates the scheduler of the monitor owned by the session user", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce(found)
+      monitorsService.activateMonitorScheduler.mockResolvedValueOnce()
+
+      const result = await controller.activateMonitorScheduler(
+        "monitor-1",
+        session,
+      )
+
+      expect(monitorsService.getMonitor).toHaveBeenCalledExactlyOnceWith({
+        id: "monitor-1",
+      })
+      expect(
+        monitorsService.activateMonitorScheduler,
+      ).toHaveBeenCalledExactlyOnceWith({
+        id: "monitor-1",
+        executeEveryMinutes: 15,
+      })
+      expect(result).toBeUndefined()
+    })
+
+    test("throws NotFoundException and skips the scheduler when the monitor belongs to another user", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce({
+        ...found,
+        ownedBy: "user-2",
+      })
+
+      await expect(
+        controller.activateMonitorScheduler("monitor-1", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.activateMonitorScheduler).not.toHaveBeenCalled()
+    })
+
+    test("propagates service errors and skips the scheduler", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockRejectedValueOnce(new NotFoundException())
+
+      await expect(
+        controller.activateMonitorScheduler("missing", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.activateMonitorScheduler).not.toHaveBeenCalled()
+    })
+
+    test("propagates scheduler errors", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce(found)
+      monitorsService.activateMonitorScheduler.mockRejectedValueOnce(
+        new InternalServerErrorException(),
+      )
+
+      await expect(
+        controller.activateMonitorScheduler("monitor-1", session),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
+    })
+  })
+
+  describe("deactivateMonitorScheduler", () => {
+    const found: MonitorDetailDto = {
+      id: "monitor-1",
+      name: "Example",
+      webPage: "https://example.com",
+      createdAt: "2026-09-30T00:00:00.000Z",
+      ownedBy: "user-1",
+      executeEveryMinutes: 15,
+      checks: [],
+      hasScheduler: true,
+    }
+
+    test("deactivates the scheduler of the monitor owned by the session user", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce(found)
+      monitorsService.deactivateMonitorScheduler.mockResolvedValueOnce()
+
+      const result = await controller.deactivateMonitorScheduler(
+        "monitor-1",
+        session,
+      )
+
+      expect(monitorsService.getMonitor).toHaveBeenCalledExactlyOnceWith({
+        id: "monitor-1",
+      })
+      expect(
+        monitorsService.deactivateMonitorScheduler,
+      ).toHaveBeenCalledExactlyOnceWith({
+        id: "monitor-1",
+        executeEveryMinutes: 15,
+      })
+      expect(result).toBeUndefined()
+    })
+
+    test("throws NotFoundException and skips the scheduler when the monitor belongs to another user", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce({
+        ...found,
+        ownedBy: "user-2",
+      })
+
+      await expect(
+        controller.deactivateMonitorScheduler("monitor-1", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.deactivateMonitorScheduler).not.toHaveBeenCalled()
+    })
+
+    test("propagates service errors and skips the scheduler", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockRejectedValueOnce(new NotFoundException())
+
+      await expect(
+        controller.deactivateMonitorScheduler("missing", session),
+      ).rejects.toBeInstanceOf(NotFoundException)
+      expect(monitorsService.deactivateMonitorScheduler).not.toHaveBeenCalled()
+    })
+
+    test("propagates scheduler errors", async ({
+      monitorsService,
+      controller,
+    }) => {
+      monitorsService.getMonitor.mockResolvedValueOnce(found)
+      monitorsService.deactivateMonitorScheduler.mockRejectedValueOnce(
+        new InternalServerErrorException(),
+      )
+
+      await expect(
+        controller.deactivateMonitorScheduler("monitor-1", session),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
     })
   })
 })

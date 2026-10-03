@@ -4,6 +4,7 @@ import {
   monitorDetailSchema,
   monitorListSchema,
 } from "../src/monitors/dto/monitor.dto.js"
+import { monitorSchedulerId } from "../src/monitors/monitors.queue.js"
 import { notFoundSchema } from "../src/shared/not-found-error.js"
 import { createMonitor, test } from "./fixtures.js"
 
@@ -21,7 +22,45 @@ describe("MonitorsController (e2e)", () => {
         webPage: "https://example.com/",
         ownedBy: user.id,
         checks: [],
+        hasScheduler: true,
       })
+    })
+
+    test("201 scheduling the monitor with its execution interval", async ({
+      user,
+      monitorsQueue,
+    }) => {
+      const response = await user.agent
+        .post("/api/monitors")
+        .send({
+          name: "Example",
+          webPage: "https://example.com",
+          executeEveryMinutes: 10,
+        })
+        .expect(201)
+
+      const scheduler = await monitorsQueue.getJobScheduler(
+        monitorSchedulerId(response.body.id),
+      )
+      expect(scheduler).toMatchObject({
+        every: 10 * 60 * 1000,
+        template: { data: { monitorId: response.body.id } },
+      })
+    })
+
+    test("201 scheduling every 5 minutes when the interval is omitted", async ({
+      user,
+      monitorsQueue,
+    }) => {
+      const response = await user.agent
+        .post("/api/monitors")
+        .send({ name: "Example", webPage: "https://example.com" })
+        .expect(201)
+
+      const scheduler = await monitorsQueue.getJobScheduler(
+        monitorSchedulerId(response.body.id),
+      )
+      expect(scheduler).toMatchObject({ every: 5 * 60 * 1000 })
     })
 
     test("201 normalizing the scheme and host without touching path or query", async ({
@@ -156,7 +195,27 @@ describe("MonitorsController (e2e)", () => {
         .expect(200)
 
       expect(response.body).toEqual(expect.schemaMatching(monitorDetailSchema))
-      expect(response.body).toMatchObject({ id: monitor.id, checks: [] })
+      expect(response.body).toMatchObject({
+        id: monitor.id,
+        executeEveryMinutes: 5,
+        checks: [],
+        hasScheduler: true,
+      })
+    })
+
+    test("200 with hasScheduler false when the scheduler is paused", async ({
+      user,
+    }) => {
+      const monitor = await createMonitor(user)
+      await user.agent
+        .delete(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(204)
+
+      const response = await user.agent
+        .get(`/api/monitors/${monitor.id}`)
+        .expect(200)
+
+      expect(response.body).toMatchObject({ hasScheduler: false })
     })
 
     test("200 without the fields the schema does not declare", async ({
@@ -253,12 +312,18 @@ describe("MonitorsController (e2e)", () => {
   })
 
   describe("DELETE /api/monitors/:monitorId", () => {
-    test("204 and the monitor is gone", async ({ user }) => {
+    test("204 and the monitor and its scheduler are gone", async ({
+      user,
+      monitorsQueue,
+    }) => {
       const monitor = await createMonitor(user)
 
       await user.agent.delete(`/api/monitors/${monitor.id}`).expect(204)
 
       await user.agent.get(`/api/monitors/${monitor.id}`).expect(404)
+      await expect(
+        monitorsQueue.getJobScheduler(monitorSchedulerId(monitor.id)),
+      ).resolves.toBeUndefined()
     })
 
     test("400 when the id is not a uuid", async ({ user }) => {
@@ -289,6 +354,145 @@ describe("MonitorsController (e2e)", () => {
 
       expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
       await otherUser.agent.get(`/api/monitors/${monitor.id}`).expect(200)
+    })
+  })
+
+  describe("POST /api/monitors/:monitorId/scheduler", () => {
+    test("204 and the paused monitor is scheduled again", async ({
+      user,
+      monitorsQueue,
+    }) => {
+      const monitor = await createMonitor(user)
+      await user.agent
+        .delete(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(204)
+
+      await user.agent.post(`/api/monitors/${monitor.id}/scheduler`).expect(204)
+
+      const response = await user.agent
+        .get(`/api/monitors/${monitor.id}`)
+        .expect(200)
+      expect(response.body).toMatchObject({ hasScheduler: true })
+      await expect(
+        monitorsQueue.getJobScheduler(monitorSchedulerId(monitor.id)),
+      ).resolves.toMatchObject({ every: 5 * 60 * 1000 })
+    })
+
+    test("204 when the scheduler is already active", async ({ user }) => {
+      const monitor = await createMonitor(user)
+
+      await user.agent.post(`/api/monitors/${monitor.id}/scheduler`).expect(204)
+
+      const response = await user.agent
+        .get(`/api/monitors/${monitor.id}`)
+        .expect(200)
+      expect(response.body).toMatchObject({ hasScheduler: true })
+    })
+
+    test("400 when the id is not a uuid", async ({ user }) => {
+      await user.agent.post("/api/monitors/not-a-uuid/scheduler").expect(400)
+    })
+
+    test("401 without session", async ({ anonymous }) => {
+      await anonymous
+        .post(`/api/monitors/${randomUUID()}/scheduler`)
+        .expect(401)
+    })
+
+    test("404 when the monitor does not exist", async ({ user }) => {
+      const response = await user.agent
+        .post(`/api/monitors/${randomUUID()}/scheduler`)
+        .expect(404)
+
+      expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
+    })
+
+    test("404 and the scheduler stays paused when the monitor belongs to another user", async ({
+      user,
+      otherUser,
+    }) => {
+      const monitor = await createMonitor(otherUser)
+      await otherUser.agent
+        .delete(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(204)
+
+      const response = await user.agent
+        .post(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(404)
+
+      expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
+      const ownerView = await otherUser.agent
+        .get(`/api/monitors/${monitor.id}`)
+        .expect(200)
+      expect(ownerView.body).toMatchObject({ hasScheduler: false })
+    })
+  })
+
+  describe("DELETE /api/monitors/:monitorId/scheduler", () => {
+    test("204 and the monitor is no longer scheduled", async ({
+      user,
+      monitorsQueue,
+    }) => {
+      const monitor = await createMonitor(user)
+
+      await user.agent
+        .delete(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(204)
+
+      await expect(
+        monitorsQueue.getJobScheduler(monitorSchedulerId(monitor.id)),
+      ).resolves.toBeUndefined()
+    })
+
+    test("204 when the scheduler is already paused", async ({ user }) => {
+      const monitor = await createMonitor(user)
+      await user.agent
+        .delete(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(204)
+
+      await user.agent
+        .delete(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(204)
+
+      const response = await user.agent
+        .get(`/api/monitors/${monitor.id}`)
+        .expect(200)
+      expect(response.body).toMatchObject({ hasScheduler: false })
+    })
+
+    test("400 when the id is not a uuid", async ({ user }) => {
+      await user.agent.delete("/api/monitors/not-a-uuid/scheduler").expect(400)
+    })
+
+    test("401 without session", async ({ anonymous }) => {
+      await anonymous
+        .delete(`/api/monitors/${randomUUID()}/scheduler`)
+        .expect(401)
+    })
+
+    test("404 when the monitor does not exist", async ({ user }) => {
+      const response = await user.agent
+        .delete(`/api/monitors/${randomUUID()}/scheduler`)
+        .expect(404)
+
+      expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
+    })
+
+    test("404 and the scheduler is kept when the monitor belongs to another user", async ({
+      user,
+      otherUser,
+    }) => {
+      const monitor = await createMonitor(otherUser)
+
+      const response = await user.agent
+        .delete(`/api/monitors/${monitor.id}/scheduler`)
+        .expect(404)
+
+      expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
+      const ownerView = await otherUser.agent
+        .get(`/api/monitors/${monitor.id}`)
+        .expect(200)
+      expect(ownerView.body).toMatchObject({ hasScheduler: true })
     })
   })
 })

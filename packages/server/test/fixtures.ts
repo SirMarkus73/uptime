@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto"
+import { getQueueToken } from "@nestjs/bullmq"
 import type { INestApplication } from "@nestjs/common"
 import { HttpClientModule } from "@nestjs/http-client"
 import { Test } from "@nestjs/testing"
 import { getOptionsToken } from "@nestjs/throttler"
+import type { Queue } from "bullmq"
 import { eq } from "drizzle-orm"
 import request from "supertest"
 import type { App } from "supertest/types.js"
@@ -10,8 +12,14 @@ import { test as baseTest } from "vitest"
 import { AppModule } from "../src/app.module.js"
 import { CONFIG } from "../src/config/configuration.js"
 import { db } from "../src/db/index.js"
-import { user } from "../src/db/schema.js"
+import { monitor, user } from "../src/db/schema.js"
 import type { MonitorDetailDto } from "../src/monitors/dto/monitor.dto.js"
+import { MonitorConsumer } from "../src/monitors/monitors.consumer.js"
+import {
+  MONITORS_QUEUE,
+  monitorSchedulerId,
+  type RunMonitorJobData,
+} from "../src/monitors/monitors.queue.js"
 import { setupApp } from "../src/setup-app.js"
 
 type TestApp = INestApplication<App>
@@ -39,6 +47,10 @@ export async function createTestApp({
   let builder = Test.createTestingModule({
     imports: [AppModule, HttpClientModule.forRoot({ fetch })],
   })
+    // Sin worker: el scheduler lanza la primera ejecución en cuanto se crea,
+    // y añadiría comprobaciones por su cuenta en mitad de los tests.
+    .overrideProvider(MonitorConsumer)
+    .useValue({})
 
   if (!throttle) {
     builder = builder.overrideProvider(getOptionsToken()).useValue({
@@ -72,8 +84,22 @@ async function signUp(app: TestApp): Promise<TestUser> {
   return { id: response.body.user.id, agent }
 }
 
-// Borrar el usuario elimina en cascada sus sesiones, monitores y comprobaciones.
-async function deleteUser(id: string) {
+export function getMonitorsQueue(app: TestApp) {
+  return app.get<Queue<RunMonitorJobData>>(getQueueToken(MONITORS_QUEUE))
+}
+
+// Borrar el usuario elimina en cascada sus sesiones, monitores y comprobaciones,
+// pero no los schedulers de la cola: se quitan antes para no dejarlos huérfanos.
+async function deleteUser(app: TestApp, id: string) {
+  const queue = getMonitorsQueue(app)
+  const monitors = await db
+    .select({ id: monitor.id })
+    .from(monitor)
+    .where(eq(monitor.ownedBy, id))
+
+  await Promise.all(
+    monitors.map(({ id }) => queue.removeJobScheduler(monitorSchedulerId(id))),
+  )
   await db.delete(user).where(eq(user.id, id))
 }
 
@@ -100,16 +126,17 @@ export const test = baseTest
     onCleanup(() => app.close())
     return app
   })
+  .extend("monitorsQueue", ({ app }) => getMonitorsQueue(app))
   // Peticiones sin sesión.
   .extend("anonymous", ({ app }) => request(app.getHttpServer()))
   .extend("user", async ({ app }, { onCleanup }) => {
     const testUser = await signUp(app)
-    onCleanup(() => deleteUser(testUser.id))
+    onCleanup(() => deleteUser(app, testUser.id))
     return testUser
   })
   // Segundo usuario para comprobar que no se accede a recursos ajenos.
   .extend("otherUser", async ({ app }, { onCleanup }) => {
     const testUser = await signUp(app)
-    onCleanup(() => deleteUser(testUser.id))
+    onCleanup(() => deleteUser(app, testUser.id))
     return testUser
   })

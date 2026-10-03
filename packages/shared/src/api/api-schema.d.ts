@@ -79,6 +79,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/monitors/{monitorId}/scheduler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MonitorsController_activateMonitorScheduler"];
+        delete: operations["MonitorsController_deactivateMonitorScheduler"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -317,6 +333,7 @@ export interface operations {
                         /** Format: uri */
                         webPage: string;
                         ownedBy: string;
+                        executeEveryMinutes: number;
                         checks: {
                             /** Format: date-time */
                             checkedAt: string;
@@ -328,6 +345,7 @@ export interface operations {
                             responseTimeMs: number;
                             statusCode: number | null;
                         }[];
+                        hasScheduler: boolean;
                     };
                 };
             };
@@ -376,6 +394,18 @@ export interface operations {
                         statusCode?: 429;
                         /** @example ThrottlerException: Too Many Requests */
                         message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
                     };
                 };
             };
@@ -406,6 +436,7 @@ export interface operations {
                         /** Format: uri */
                         webPage: string;
                         ownedBy: string;
+                        executeEveryMinutes: number;
                         checks: {
                             /** Format: date-time */
                             checkedAt: string;
@@ -417,6 +448,7 @@ export interface operations {
                             responseTimeMs: number;
                             statusCode: number | null;
                         }[];
+                        hasScheduler: boolean;
                     };
                 };
             };
@@ -477,6 +509,18 @@ export interface operations {
                         statusCode?: 429;
                         /** @example ThrottlerException: Too Many Requests */
                         message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
                     };
                 };
             };
@@ -507,6 +551,7 @@ export interface operations {
                         /** Format: uri */
                         webPage: string;
                         ownedBy: string;
+                        executeEveryMinutes: number;
                         checks: {
                             /** Format: date-time */
                             checkedAt: string;
@@ -518,6 +563,7 @@ export interface operations {
                             responseTimeMs: number;
                             statusCode: number | null;
                         }[];
+                        hasScheduler: boolean;
                     };
                 };
             };
@@ -578,6 +624,18 @@ export interface operations {
                         statusCode?: 429;
                         /** @example ThrottlerException: Too Many Requests */
                         message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
                     };
                 };
             };
@@ -657,6 +715,200 @@ export interface operations {
                         statusCode?: 429;
                         /** @example ThrottlerException: Too Many Requests */
                         message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
+                    };
+                };
+            };
+        };
+    };
+    MonitorsController_activateMonitorScheduler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                monitorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 400;
+                        /**
+                         * @example [
+                         *       "url must be a valid URL",
+                         *       "name should not be empty"
+                         *     ]
+                         */
+                        message?: string[];
+                        /** @example Bad Request */
+                        error?: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Unauthorized */
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 401;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 404;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 429;
+                        /** @example ThrottlerException: Too Many Requests */
+                        message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
+                    };
+                };
+            };
+        };
+    };
+    MonitorsController_deactivateMonitorScheduler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                monitorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 400;
+                        /**
+                         * @example [
+                         *       "url must be a valid URL",
+                         *       "name should not be empty"
+                         *     ]
+                         */
+                        message?: string[];
+                        /** @example Bad Request */
+                        error?: string;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Unauthorized */
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 401;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 404;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 429;
+                        /** @example ThrottlerException: Too Many Requests */
+                        message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
                     };
                 };
             };
