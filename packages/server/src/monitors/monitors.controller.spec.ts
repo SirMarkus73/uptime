@@ -48,12 +48,14 @@ describe("MonitorsController", () => {
       const result = await controller.createMonitor(session, {
         name: "Example",
         webPage: "https://example.com",
+        executeEveryMinutes: 10,
       })
 
       expect(monitorsService.createMonitor).toHaveBeenCalledExactlyOnceWith({
         ownedBy: "user-1",
         name: "Example",
         webPage: "https://example.com",
+        executeEveryMinutes: 10,
       })
       expect(result).toEqual(created)
     })

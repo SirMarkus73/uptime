@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { db } from "../src/db/index.js"
 import {
   monitorDetailSchema,
   monitorListSchema,
@@ -37,6 +38,66 @@ describe("MonitorsController (e2e)", () => {
       expect(response.body).toMatchObject({
         webPage: "https://example.com/Docs?token=AbC",
       })
+    })
+
+    test("201 saving the execution interval", async ({ user }) => {
+      const response = await user.agent
+        .post("/api/monitors")
+        .send({
+          name: "Example",
+          webPage: "https://example.com",
+          executeEveryMinutes: 10,
+        })
+        .expect(201)
+
+      const saved = await db.query.monitor.findFirst({
+        where: { id: response.body.id },
+      })
+      expect(saved).toMatchObject({ executeEveryMinutes: 10 })
+    })
+
+    test("201 executing every 5 minutes when the interval is omitted", async ({
+      user,
+    }) => {
+      const response = await user.agent
+        .post("/api/monitors")
+        .send({ name: "Example", webPage: "https://example.com" })
+        .expect(201)
+
+      const saved = await db.query.monitor.findFirst({
+        where: { id: response.body.id },
+      })
+      expect(saved).toMatchObject({ executeEveryMinutes: 5 })
+    })
+
+    test("400 when the execution interval is below 5 minutes", async ({
+      user,
+    }) => {
+      const response = await user.agent
+        .post("/api/monitors")
+        .send({
+          name: "Example",
+          webPage: "https://example.com",
+          executeEveryMinutes: 4,
+        })
+        .expect(400)
+
+      expect(response.body).toMatchObject({ statusCode: 400 })
+    })
+
+    test("400 when the execution interval is not an integer", async ({
+      user,
+    }) => {
+      const response = await user.agent
+        .post("/api/monitors")
+        .send({
+          name: "Example",
+          webPage: "https://example.com",
+          executeEveryMinutes: 7.5,
+        })
+        .expect(400)
+
+      expect(response.body).toMatchObject({ statusCode: 400 })
     })
 
     test("400 when the url is not valid", async ({ user }) => {

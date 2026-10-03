@@ -1,0 +1,1 @@
+ALTER TABLE "monitor" ADD COLUMN "executeEveryMinutes" integer DEFAULT 5 NOT NULL;

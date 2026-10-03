@@ -5,11 +5,11 @@ export const createMonitorSchema = insertMonitorSchema.pick({
   name: true,
   ownedBy: true,
   webPage: true,
+  executeEveryMinutes: true,
 })
 
-export const createMonitorBodySchema = createMonitorSchema.pick({
-  webPage: true,
-  name: true,
+export const createMonitorBodySchema = createMonitorSchema.omit({
+  ownedBy: true,
 })
 
 export type CreateMonitorDto = z.infer<typeof createMonitorSchema>

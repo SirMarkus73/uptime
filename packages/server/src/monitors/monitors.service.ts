@@ -24,6 +24,7 @@ export class MonitorsService {
     ownedBy,
     webPage,
     name,
+    executeEveryMinutes,
   }: CreateMonitorDto): Promise<MonitorDetailDto> {
     const [result] = await db
       .insert(monitor)
@@ -31,6 +32,7 @@ export class MonitorsService {
         ownedBy,
         webPage,
         name,
+        executeEveryMinutes,
       })
       .returning({
         id: monitor.id,

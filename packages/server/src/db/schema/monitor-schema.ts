@@ -1,6 +1,7 @@
 import { defineRelationsPart } from "drizzle-orm"
 import {
   camelCase,
+  integer,
   text,
   timestamp,
   uniqueIndex,
@@ -20,6 +21,7 @@ export const monitor = camelCase.table(
     id: uuid().defaultRandom().primaryKey(),
     name: text().notNull(),
     webPage: text().notNull(),
+    executeEveryMinutes: integer().default(5).notNull(),
     ownedBy: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade", onUpdate: "cascade" }),
@@ -39,9 +41,6 @@ export const monitorRelations = defineRelationsPart({ user, monitor }, (r) => ({
 }))
 
 // -- Schemas
-// Normaliza la URL con el parser WHATWG: pone en minúsculas el esquema y el dominio,
-// pero respeta la ruta y los parámetros, que sí distinguen mayúsculas. Si no se puede
-// parsear se deja tal cual para que z.httpUrl() la rechace con un 400 en lugar de lanzar.
 const webPageSchema = () =>
   z.httpUrl().overwrite((url) => URL.parse(url)?.href ?? url)
 
@@ -49,6 +48,8 @@ export const insertMonitorSchema = createInsertSchema(monitor, {
   createdAt: () => z.iso.datetime(),
   webPage: webPageSchema,
   name: (r) => r.min(1).max(30),
+  executeEveryMinutes: (r) =>
+    r.min(5, { error: "The minimum execution time is 5 minutes" }),
 })
 export const selectMonitorSchema = createSelectSchema(monitor, {
   createdAt: () => z.iso.datetime(),
@@ -59,4 +60,6 @@ export const updateMonitorSchema = createUpdateSchema(monitor, {
   createdAt: () => z.iso.datetime(),
   webPage: webPageSchema,
   name: (r) => r.min(1).max(30),
+  executeEveryMinutes: (r) =>
+    r.min(5, { error: "The minimum execution time is 5 minutes" }),
 })

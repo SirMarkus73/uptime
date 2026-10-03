@@ -295,9 +295,10 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    name: string;
                     /** Format: uri */
                     webPage: string;
-                    name: string;
+                    executeEveryMinutes?: number;
                 };
             };
         };

@@ -42,12 +42,10 @@ export class MonitorsController {
     @Body({ schema: createMonitorBodySchema }) body: CreateMonitorBodyDto,
   ): Promise<MonitorDetailDto> {
     const { user } = session
-    const { webPage, name } = body
 
     return this.monitorService.createMonitor({
+      ...body,
       ownedBy: user.id,
-      webPage,
-      name,
     })
   }
 

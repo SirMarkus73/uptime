@@ -73,6 +73,7 @@ describe("MonitorsService", () => {
       ownedBy: "user-1",
       webPage: "https://example.com",
       name: "Example",
+      executeEveryMinutes: 10,
     }
 
     test("inserts the monitor and returns the created row", async ({
