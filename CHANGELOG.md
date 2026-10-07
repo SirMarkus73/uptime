@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/SirMarkus73/uptime/compare/v1.4.0...v1.5.0) (2026-10-07)
+
+
+### Features
+
+* **monitors:** Consultar las comprobaciones de un monitor en un endpoint propio ([b89fa07](https://github.com/SirMarkus73/uptime/commit/b89fa07d436eedd8459b8dda7ab21c263f00a50f))
+
 # [1.4.0](https://github.com/SirMarkus73/uptime/compare/v1.3.0...v1.4.0) (2026-10-03)
 
 
