@@ -4,9 +4,11 @@ import { createTempId } from "#/core/lib/temp-id"
 import { authClient } from "#/features/auth/auth-client"
 import { $api } from "#/shared/api/fetch-client"
 import type { MonitorDetail, MonitorListItem } from "../interfaces/monitor"
-import { monitorQueryOptions, monitorsQueryOptions } from "./queries"
-
-// El detalle de un monitor solo trae los últimos checks (ver MonitorsService.getMonitor).
+import {
+  monitorChecksQueryOptions,
+  monitorQueryOptions,
+  monitorsQueryOptions,
+} from "./queries"
 
 export function useCreateMonitor() {
   const { data: session } = authClient.useSession()
@@ -31,7 +33,7 @@ export function useCreateMonitor() {
       const createdMonitor: MonitorListItem = {
         id: createdMonitorTempId,
         createdAt: new Date().toISOString(),
-        isUp: null,
+        lastCheck: null,
         name: body.name,
         ownedBy: user.id,
         webPage: body.webPage,
@@ -66,7 +68,7 @@ export function useCreateMonitor() {
             const newMonitor: MonitorListItem = {
               createdAt: data.createdAt,
               id: data.id,
-              isUp: null,
+              lastCheck: null,
               name: data.name,
               ownedBy: data.ownedBy,
               webPage: data.webPage,
@@ -120,60 +122,73 @@ export function useCreateMonitor() {
 }
 
 export function useRunMonitor(monitorId: MonitorDetail["id"]) {
-  const mutation = $api.useMutation("post", "/api/monitors/{monitorId}/run", {
-    onMutate: async (_variables, { client }) => {
-      const ranMonitor = client.getQueryData(
-        monitorQueryOptions(monitorId).queryKey,
-      )
+  const mutation = $api.useMutation(
+    "post",
+    "/api/monitors/{monitorId}/checks",
+    {
+      onMutate: async (_variables, { client }) => {
+        const ranMonitor = client.getQueryData(
+          monitorQueryOptions(monitorId).queryKey,
+        )
 
-      const ranMonitorMsg = "Ejecutando monitor"
-      const toastId = toast.add({
-        title: ranMonitor?.name || ranMonitorMsg,
-        description: ranMonitor?.name && ranMonitorMsg,
-        type: "loading",
-      })
+        const ranMonitorMsg = "Ejecutando monitor"
+        const toastId = toast.add({
+          title: ranMonitor?.name || ranMonitorMsg,
+          description: ranMonitor?.name && ranMonitorMsg,
+          type: "loading",
+        })
 
-      return { toastId, ranMonitor }
+        return { toastId, ranMonitor }
+      },
+
+      onSuccess: (
+        createdCheck,
+        _variables,
+        { toastId, ranMonitor },
+        { client },
+      ) => {
+        // Se actualiza la caché con el check que devuelve el servidor en vez de
+        // volver a pedir la lista, el detalle y los checks.
+
+        client.setQueryData(monitorsQueryOptions().queryKey, (monitors) =>
+          monitors?.map((monitor) =>
+            monitor.id === monitorId
+              ? { ...monitor, lastCheck: createdCheck }
+              : monitor,
+          ),
+        )
+
+        client.setQueryData(
+          monitorQueryOptions(monitorId).queryKey,
+          (monitor) =>
+            monitor ? { ...monitor, lastCheck: createdCheck } : monitor,
+        )
+
+        client.setQueryData(
+          monitorChecksQueryOptions(monitorId).queryKey,
+          (checks) => (checks ? [createdCheck, ...checks] : checks),
+        )
+
+        const ranMonitorMsg = "Monitor ejecutando correctamente"
+        toast.update(toastId, {
+          title: ranMonitor?.name || ranMonitorMsg,
+          description: ranMonitor?.name && ranMonitorMsg,
+          type: "success",
+        })
+      },
+      onError: (_error, _variables, onMutateResult) => {
+        if (!onMutateResult) return
+        const { ranMonitor, toastId } = onMutateResult
+        const ranMonitorMsg =
+          "Ha ocurrido un error mientras se ejecutaba el monitor"
+        toast.update(toastId, {
+          title: ranMonitor?.name || ranMonitorMsg,
+          description: ranMonitor?.name && ranMonitorMsg,
+          type: "error",
+        })
+      },
     },
-
-    onSuccess: (ranMonitor, _variables, { toastId }, { client }) => {
-      // Se actualiza la caché con el check que devuelve el run en vez de
-      // volver a pedir la lista y el detalle.
-
-      const monitorsQuery = monitorsQueryOptions()
-      const monitorQuery = monitorQueryOptions(monitorId)
-
-      client.setQueryData(monitorsQuery.queryKey, (monitors) =>
-        monitors?.map((monitor) => {
-          if (monitor.id !== monitorId) return monitor
-
-          const isUp = ranMonitor.checks[0] ? ranMonitor.checks[0].isUp : null
-
-          return { ...monitor, isUp }
-        }),
-      )
-
-      client.setQueryData(monitorQuery.queryKey, ranMonitor)
-
-      const ranMonitorMsg = "Monitor ejecutando correctamente"
-      toast.update(toastId, {
-        title: ranMonitor.name || ranMonitorMsg,
-        description: ranMonitor.name && ranMonitorMsg,
-        type: "success",
-      })
-    },
-    onError: (_error, _variables, onMutateResult) => {
-      if (!onMutateResult) return
-      const { ranMonitor, toastId } = onMutateResult
-      const ranMonitorMsg =
-        "Ha ocurrido un error mientras se ejecutaba el monitor"
-      toast.update(toastId, {
-        title: ranMonitor?.name || ranMonitorMsg,
-        description: ranMonitor?.name && ranMonitorMsg,
-        type: "error",
-      })
-    },
-  })
+  )
 
   return {
     ...mutation,

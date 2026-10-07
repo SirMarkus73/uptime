@@ -5,16 +5,13 @@ import {
   NotFoundException,
 } from "@nestjs/common"
 import { Queue } from "bullmq"
-import { db } from "../db/index.js"
-import { check } from "../db/schema.js"
-import { UptimeService } from "../uptime/uptime.service.js"
+import { ChecksRepository } from "./checks/checks.repository.js"
 import { ActivateMonitorSchedulerDto } from "./dto/activate-monitor-scheduler.dto.js"
 import { CreateMonitorDto } from "./dto/create-monitor.dto.js"
 import { DeleteMonitorDto } from "./dto/delete-monitor.dto.js"
 import { GetMonitorDto } from "./dto/get-monitor.dto.js"
 import { ListMonitorsDto } from "./dto/list-monitors.dto.js"
 import { MonitorDetailDto, MonitorListDto } from "./dto/monitor.dto.js"
-import { RunMonitorDto } from "./dto/run-monitor.dto.js"
 import {
   MONITORS_QUEUE,
   monitorSchedulerId,
@@ -27,8 +24,8 @@ export class MonitorsService {
   constructor(
     @InjectQueue(MONITORS_QUEUE)
     private readonly monitorsQueue: Queue<RunMonitorJobData>,
-    private readonly uptimeService: UptimeService,
     private readonly monitorRepository: MonitorsRepository,
+    private readonly checksRepository: ChecksRepository,
   ) {}
 
   private async getMonitorScheduler(monitorId: string) {
@@ -96,7 +93,7 @@ export class MonitorsService {
         throw new InternalServerErrorException()
       }
 
-      createdMonitor = { ...result, checks: [], hasScheduler: false }
+      createdMonitor = { ...result, lastCheck: null, hasScheduler: false }
     } catch {
       throw new InternalServerErrorException(`Failed to create monitor`)
     }
@@ -111,13 +108,18 @@ export class MonitorsService {
 
   async getMonitor({ id }: GetMonitorDto): Promise<MonitorDetailDto> {
     const scheduler = await this.getMonitorScheduler(id)
-    let monitor = null
+    let found = null
 
     try {
-      monitor = await this.monitorRepository.findWithChecks(id)
+      found = await Promise.all([
+        this.monitorRepository.find(id),
+        this.checksRepository.findLatest(id),
+      ])
     } catch {
       throw new InternalServerErrorException()
     }
+
+    const [monitor, lastCheck] = found
 
     if (!monitor) {
       throw new NotFoundException()
@@ -125,6 +127,7 @@ export class MonitorsService {
 
     return {
       ...monitor,
+      lastCheck: lastCheck ?? null,
       hasScheduler: !!scheduler,
     }
   }
@@ -132,46 +135,15 @@ export class MonitorsService {
   async listMonitors({ ownedBy }: ListMonitorsDto): Promise<MonitorListDto> {
     let monitors = null
     try {
-      monitors = await this.monitorRepository.findManyWithStatus(ownedBy)
+      monitors = await this.monitorRepository.findManyWithLastCheck(ownedBy)
     } catch {
       throw new InternalServerErrorException()
     }
-    return monitors
-  }
 
-  async runMonitor({ id }: RunMonitorDto): Promise<MonitorDetailDto> {
-    const monitor = await this.getMonitor({ id })
-
-    const checkResult = await this.uptimeService.checkState(monitor.webPage)
-
-    try {
-      const [checkInsertResult] = await db
-        .insert(check)
-        .values({ ...checkResult, monitorId: id })
-        .returning({
-          id: check.id,
-          isUp: check.isUp,
-          statusCode: check.statusCode,
-          responseTimeMs: check.responseTimeMs,
-          checkedAt: check.checkedAt,
-          errorCode: check.errorCode,
-        })
-
-      if (!checkInsertResult) {
-        throw new InternalServerErrorException()
-      }
-
-      return {
-        ...monitor,
-        checks: [checkInsertResult, ...monitor.checks.slice(0, 4)],
-      }
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error
-      }
-
-      throw new InternalServerErrorException(`Failed to save check result`)
-    }
+    return monitors.map(({ checks, ...monitor }) => ({
+      ...monitor,
+      lastCheck: checks[0] ?? null,
+    }))
   }
 
   async deleteMonitor({ id }: DeleteMonitorDto): Promise<void> {

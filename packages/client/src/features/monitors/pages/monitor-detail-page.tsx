@@ -1,6 +1,10 @@
 import { Link, notFound } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
-import { isMonitorNotFoundError, useMonitor } from "../api/queries"
+import {
+  isMonitorNotFoundError,
+  useMonitor,
+  useMonitorChecks,
+} from "../api/queries"
 import { MonitorCheckHistory } from "../components/monitor-detail/monitor-check-history"
 import { MonitorDetailError } from "../components/monitor-detail/monitor-detail-error"
 import { MonitorDetailSkeleton } from "../components/monitor-detail/monitor-detail-skeleton"
@@ -14,6 +18,7 @@ type MonitorDetailPageProps = {
 
 export function MonitorDetailPage({ monitorId }: MonitorDetailPageProps) {
   const { data: monitor, error, isFetching, refetch } = useMonitor(monitorId)
+  const { data: checks } = useMonitorChecks(monitorId)
 
   // Lo recoge el `notFoundComponent` de la ruta.
   if (isMonitorNotFoundError(error)) {
@@ -34,8 +39,12 @@ export function MonitorDetailPage({ monitorId }: MonitorDetailPageProps) {
         {monitor ? (
           <div className="flex flex-col gap-12">
             <MonitorOverview monitor={monitor} />
-            <MonitorResponseTimeChart checks={monitor.checks} />
-            <MonitorCheckHistory checks={monitor.checks} />
+            {checks && (
+              <>
+                <MonitorResponseTimeChart checks={checks} />
+                <MonitorCheckHistory checks={checks} />
+              </>
+            )}
           </div>
         ) : error ? (
           <MonitorDetailError

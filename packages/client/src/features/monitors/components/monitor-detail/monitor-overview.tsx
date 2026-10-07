@@ -31,7 +31,7 @@ const statusLabels: Record<MonitorStatus, string> = {
   checking: "Comprobando",
 }
 
-function LastCheckSummary({ check }: { check: MonitorCheck | undefined }) {
+function LastCheckSummary({ check }: { check: MonitorCheck | null }) {
   if (!check) return "Comprueba la web para registrar su primer estado."
 
   const when = <RelativeTime date={check.checkedAt} />
@@ -59,7 +59,7 @@ type MonitorOverviewProps = {
 export function MonitorOverview({ monitor }: MonitorOverviewProps) {
   const { mutate: runMonitor, isPending: isRunning } = useRunMonitor(monitor.id)
 
-  const [lastCheck] = monitor.checks
+  const { lastCheck } = monitor
   const status: MonitorStatus = isRunning
     ? "checking"
     : !lastCheck

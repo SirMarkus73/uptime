@@ -62,28 +62,6 @@ export class MonitorsController {
     standardSchema: internalServerErrorSchema,
   })
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
-  @ApiSerializedResponse({
-    status: HttpStatus.CREATED,
-    schema: monitorDetailSchema,
-  })
-  @Post(":monitorId/run")
-  async runMonitor(
-    @Param("monitorId", { schema: monitorIdFieldSchema }) monitorId: string,
-    @Session() session: UserSession,
-  ): Promise<MonitorDetailDto> {
-    const { user } = session
-    const monitor = await this.monitorService.getMonitor({ id: monitorId })
-
-    if (monitor.ownedBy !== user.id) throw new NotFoundException()
-
-    return this.monitorService.runMonitor({ id: monitorId })
-  }
-
-  @ApiAuthenticationErrors()
-  @ApiInternalServerErrorResponse({
-    standardSchema: internalServerErrorSchema,
-  })
-  @ApiNotFoundResponse({ standardSchema: notFoundSchema })
   @ApiSerializedResponse({ status: HttpStatus.OK, schema: monitorDetailSchema })
   @Get(":monitorId")
   async getMonitor(

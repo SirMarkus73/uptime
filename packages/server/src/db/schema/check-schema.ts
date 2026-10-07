@@ -81,3 +81,9 @@ export const updateCheckSchema = createUpdateSchema(check, {
       example: 14.2841248,
     }),
 })
+
+// -- Types
+
+export type InsertCheck = z.infer<typeof insertCheckSchema>
+export type SelectCheck = z.infer<typeof selectCheckSchema>
+export type UpdateCheck = z.infer<typeof updateCheckSchema>

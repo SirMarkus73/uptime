@@ -11,7 +11,6 @@ const session = { user: { id: "user-1" } } as UserSession
 const test = baseTest
   .extend("monitorsService", () => ({
     createMonitor: vi.fn<MonitorsService["createMonitor"]>(),
-    runMonitor: vi.fn<MonitorsService["runMonitor"]>(),
     getMonitor: vi.fn<MonitorsService["getMonitor"]>(),
     listMonitors: vi.fn<MonitorsService["listMonitors"]>(),
     deleteMonitor: vi.fn<MonitorsService["deleteMonitor"]>(),
@@ -46,7 +45,7 @@ describe("MonitorsController", () => {
         createdAt: "2026-09-30T00:00:00.000Z",
         ownedBy: "user-1",
         executeEveryMinutes: 5,
-        checks: [],
+        lastCheck: null,
         hasScheduler: true,
       }
       monitorsService.createMonitor.mockResolvedValueOnce(created)
@@ -84,77 +83,6 @@ describe("MonitorsController", () => {
     })
   })
 
-  describe("runMonitor", () => {
-    const found: MonitorDetailDto = {
-      id: "monitor-1",
-      name: "Example",
-      webPage: "https://example.com",
-      createdAt: "2026-09-30T00:00:00.000Z",
-      ownedBy: "user-1",
-      executeEveryMinutes: 5,
-      checks: [],
-      hasScheduler: true,
-    }
-
-    test("runs the monitor and returns it with the new check", async ({
-      monitorsService,
-      controller,
-    }) => {
-      const ranMonitor: MonitorDetailDto = {
-        ...found,
-        checks: [
-          {
-            id: "check-1",
-            isUp: true,
-            statusCode: 200,
-            responseTimeMs: 12.5,
-            errorCode: null,
-            checkedAt: "2026-09-30T00:00:01.000Z",
-          },
-        ],
-      }
-      monitorsService.getMonitor.mockResolvedValueOnce(found)
-      monitorsService.runMonitor.mockResolvedValueOnce(ranMonitor)
-
-      const result = await controller.runMonitor("monitor-1", session)
-
-      expect(monitorsService.getMonitor).toHaveBeenCalledExactlyOnceWith({
-        id: "monitor-1",
-      })
-      expect(monitorsService.runMonitor).toHaveBeenCalledExactlyOnceWith({
-        id: "monitor-1",
-      })
-      expect(result).toEqual(ranMonitor)
-    })
-
-    test("throws NotFoundException and skips the run when the monitor belongs to another user", async ({
-      monitorsService,
-      controller,
-    }) => {
-      monitorsService.getMonitor.mockResolvedValueOnce({
-        ...found,
-        ownedBy: "user-2",
-      })
-
-      await expect(
-        controller.runMonitor("monitor-1", session),
-      ).rejects.toBeInstanceOf(NotFoundException)
-      expect(monitorsService.runMonitor).not.toHaveBeenCalled()
-    })
-
-    test("propagates service errors and skips the run", async ({
-      monitorsService,
-      controller,
-    }) => {
-      monitorsService.getMonitor.mockRejectedValueOnce(new NotFoundException())
-
-      await expect(
-        controller.runMonitor("missing", session),
-      ).rejects.toBeInstanceOf(NotFoundException)
-      expect(monitorsService.runMonitor).not.toHaveBeenCalled()
-    })
-  })
-
   describe("getMonitor", () => {
     test("returns the requested monitor", async ({
       monitorsService,
@@ -167,7 +95,7 @@ describe("MonitorsController", () => {
         createdAt: "2026-09-30T00:00:00.000Z",
         ownedBy: "user-1",
         executeEveryMinutes: 5,
-        checks: [],
+        lastCheck: null,
         hasScheduler: true,
       }
       monitorsService.getMonitor.mockResolvedValueOnce(found)
@@ -191,7 +119,7 @@ describe("MonitorsController", () => {
         createdAt: "2026-09-30T00:00:00.000Z",
         ownedBy: "user-2",
         executeEveryMinutes: 5,
-        checks: [],
+        lastCheck: null,
         hasScheduler: true,
       })
 
@@ -224,7 +152,7 @@ describe("MonitorsController", () => {
           webPage: "https://example.com",
           createdAt: "2026-09-30T00:00:00.000Z",
           ownedBy: "user-1",
-          isUp: true,
+          lastCheck: null,
         },
       ]
       monitorsService.listMonitors.mockResolvedValueOnce(monitors)
@@ -259,7 +187,7 @@ describe("MonitorsController", () => {
       createdAt: "2026-09-30T00:00:00.000Z",
       ownedBy: "user-1",
       executeEveryMinutes: 5,
-      checks: [],
+      lastCheck: null,
       hasScheduler: true,
     }
 
@@ -317,7 +245,7 @@ describe("MonitorsController", () => {
       createdAt: "2026-09-30T00:00:00.000Z",
       ownedBy: "user-1",
       executeEveryMinutes: 15,
-      checks: [],
+      lastCheck: null,
       hasScheduler: false,
     }
 
@@ -395,7 +323,7 @@ describe("MonitorsController", () => {
       createdAt: "2026-09-30T00:00:00.000Z",
       ownedBy: "user-1",
       executeEveryMinutes: 15,
-      checks: [],
+      lastCheck: null,
       hasScheduler: true,
     }
 

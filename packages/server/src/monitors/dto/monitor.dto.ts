@@ -1,5 +1,6 @@
 import z from "zod"
-import { selectCheckSchema, selectMonitorSchema } from "../../db/schema.js"
+import { selectMonitorSchema } from "../../db/schema.js"
+import { checkSchema } from "../checks/dto/check.dto.js"
 
 export const monitorDetailSchema = selectMonitorSchema
   .pick({
@@ -11,16 +12,7 @@ export const monitorDetailSchema = selectMonitorSchema
     executeEveryMinutes: true,
   })
   .extend({
-    checks: z.array(
-      selectCheckSchema.pick({
-        checkedAt: true,
-        errorCode: true,
-        id: true,
-        isUp: true,
-        responseTimeMs: true,
-        statusCode: true,
-      }),
-    ),
+    lastCheck: checkSchema.nullable(),
     hasScheduler: z.boolean(),
   })
 
@@ -33,7 +25,7 @@ export const monitorListSchema = z.array(
       webPage: true,
       ownedBy: true,
     })
-    .extend({ isUp: z.boolean().nullable() }),
+    .extend({ lastCheck: checkSchema.nullable() }),
 )
 
 export const monitorIdFieldSchema = selectMonitorSchema.shape.id.meta({
@@ -42,3 +34,4 @@ export const monitorIdFieldSchema = selectMonitorSchema.shape.id.meta({
 
 export type MonitorDetailDto = z.infer<typeof monitorDetailSchema>
 export type MonitorListDto = z.infer<typeof monitorListSchema>
+export type MonitorIdFieldDto = z.infer<typeof monitorIdFieldSchema>

@@ -47,22 +47,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/monitors/{monitorId}/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["MonitorsController_runMonitor"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/monitors/{monitorId}": {
         parameters: {
             query?: never;
@@ -90,6 +74,22 @@ export interface paths {
         put?: never;
         post: operations["MonitorsController_activateMonitorScheduler"];
         delete: operations["MonitorsController_deactivateMonitorScheduler"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/monitors/{monitorId}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ChecksController_findSinceDays"];
+        put?: never;
+        post: operations["ChecksController_createCheck"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -247,7 +247,17 @@ export interface operations {
                         /** Format: uri */
                         webPage: string;
                         ownedBy: string;
-                        isUp: boolean | null;
+                        lastCheck: {
+                            /** Format: date-time */
+                            checkedAt: string;
+                            errorCode: string | null;
+                            /** Format: uuid */
+                            id: string;
+                            isUp: boolean;
+                            /** @example 14.2841248 */
+                            responseTimeMs: number;
+                            statusCode: number | null;
+                        } | null;
                     }[];
                 };
             };
@@ -346,7 +356,7 @@ export interface operations {
                         webPage: string;
                         ownedBy: string;
                         executeEveryMinutes: number;
-                        checks: {
+                        lastCheck: {
                             /** Format: date-time */
                             checkedAt: string;
                             errorCode: string | null;
@@ -356,7 +366,7 @@ export interface operations {
                             /** @example 14.2841248 */
                             responseTimeMs: number;
                             statusCode: number | null;
-                        }[];
+                        } | null;
                         hasScheduler: boolean;
                     };
                 };
@@ -392,121 +402,6 @@ export interface operations {
                         message: string;
                         /** @enum {number} */
                         statusCode: 401;
-                    };
-                };
-            };
-            /** @description Too Many Requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {number} */
-                        statusCode?: 429;
-                        /** @example ThrottlerException: Too Many Requests */
-                        message?: string;
-                    };
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        message: string;
-                        /** @enum {number} */
-                        statusCode: 500;
-                    };
-                };
-            };
-        };
-    };
-    MonitorsController_runMonitor: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                monitorId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        id: string;
-                        name: string;
-                        /** Format: date-time */
-                        createdAt: string | null;
-                        /** Format: uri */
-                        webPage: string;
-                        ownedBy: string;
-                        executeEveryMinutes: number;
-                        checks: {
-                            /** Format: date-time */
-                            checkedAt: string;
-                            errorCode: string | null;
-                            /** Format: uuid */
-                            id: string;
-                            isUp: boolean;
-                            /** @example 14.2841248 */
-                            responseTimeMs: number;
-                            statusCode: number | null;
-                        }[];
-                        hasScheduler: boolean;
-                    };
-                };
-            };
-            /** @description Validation error */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {number} */
-                        statusCode?: 400;
-                        /**
-                         * @example [
-                         *       "url must be a valid URL",
-                         *       "name should not be empty"
-                         *     ]
-                         */
-                        message?: string[];
-                        /** @example Bad Request */
-                        error?: string;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example Unauthorized */
-                        message: string;
-                        /** @enum {number} */
-                        statusCode: 401;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        message: string;
-                        /** @enum {number} */
-                        statusCode: 404;
                     };
                 };
             };
@@ -564,7 +459,7 @@ export interface operations {
                         webPage: string;
                         ownedBy: string;
                         executeEveryMinutes: number;
-                        checks: {
+                        lastCheck: {
                             /** Format: date-time */
                             checkedAt: string;
                             errorCode: string | null;
@@ -574,7 +469,7 @@ export interface operations {
                             /** @example 14.2841248 */
                             responseTimeMs: number;
                             statusCode: number | null;
-                        }[];
+                        } | null;
                         hasScheduler: boolean;
                     };
                 };
@@ -872,6 +767,184 @@ export interface operations {
                         error?: string;
                     };
                 };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Unauthorized */
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 401;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 404;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 429;
+                        /** @example ThrottlerException: Too Many Requests */
+                        message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
+                    };
+                };
+            };
+        };
+    };
+    ChecksController_findSinceDays: {
+        parameters: {
+            query?: {
+                sinceDays?: number;
+            };
+            header?: never;
+            path: {
+                monitorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        checkedAt: string;
+                        errorCode: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isUp: boolean;
+                        /** @example 14.2841248 */
+                        responseTimeMs: number;
+                        statusCode: number | null;
+                    }[];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Unauthorized */
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 401;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 404;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 429;
+                        /** @example ThrottlerException: Too Many Requests */
+                        message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
+                    };
+                };
+            };
+        };
+    };
+    ChecksController_createCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                monitorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        checkedAt: string;
+                        errorCode: string | null;
+                        /** Format: uuid */
+                        id: string;
+                        isUp: boolean;
+                        /** @example 14.2841248 */
+                        responseTimeMs: number;
+                        statusCode: number | null;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             401: {
                 headers: {

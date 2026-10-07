@@ -1,16 +1,16 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq"
 import { Job } from "bullmq"
+import { ChecksService } from "./checks/checks.service.js"
 import { MONITORS_QUEUE, RunMonitorJobData } from "./monitors.queue.js"
-import { MonitorsService } from "./monitors.service.js"
 
 @Processor(MONITORS_QUEUE)
 export class MonitorsConsumer extends WorkerHost {
-  constructor(private readonly monitorsService: MonitorsService) {
+  constructor(private readonly checksService: ChecksService) {
     super()
   }
 
   async process(job: Job<RunMonitorJobData>) {
     const { monitorId } = job.data
-    await this.monitorsService.runMonitor({ id: monitorId })
+    await this.checksService.createCheck(monitorId)
   }
 }

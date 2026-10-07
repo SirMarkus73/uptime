@@ -2,22 +2,22 @@ import { NotFoundException } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import type { Job } from "bullmq"
 import { test as baseTest } from "vitest"
-import type { MonitorDetailDto } from "./dto/monitor.dto.js"
+import { ChecksService } from "./checks/checks.service.js"
+import type { CheckDto } from "./checks/dto/check.dto.js"
 import { MonitorsConsumer } from "./monitors.consumer.js"
 import type { RunMonitorJobData } from "./monitors.queue.js"
-import { MonitorsService } from "./monitors.service.js"
 
 const job = { data: { monitorId: "monitor-1" } } as Job<RunMonitorJobData>
 
 const test = baseTest
-  .extend("monitorsService", () => ({
-    runMonitor: vi.fn<MonitorsService["runMonitor"]>(),
+  .extend("checksService", () => ({
+    createCheck: vi.fn<ChecksService["createCheck"]>(),
   }))
-  .extend("consumer", async ({ monitorsService }) => {
+  .extend("consumer", async ({ checksService }) => {
     const module = await Test.createTestingModule({
       providers: [
         MonitorsConsumer,
-        { provide: MonitorsService, useValue: monitorsService },
+        { provide: ChecksService, useValue: checksService },
       ],
     }).compile()
 
@@ -30,25 +30,25 @@ describe("MonitorConsumer", () => {
   })
 
   describe("process", () => {
-    test("runs the monitor of the job", async ({
-      monitorsService,
+    test("creates a check for the monitor of the job", async ({
+      checksService,
       consumer,
     }) => {
-      monitorsService.runMonitor.mockResolvedValueOnce({} as MonitorDetailDto)
+      checksService.createCheck.mockResolvedValueOnce({} as CheckDto)
 
       await expect(consumer.process(job)).resolves.toBeUndefined()
 
-      expect(monitorsService.runMonitor).toHaveBeenCalledExactlyOnceWith({
-        id: "monitor-1",
-      })
+      expect(checksService.createCheck).toHaveBeenCalledExactlyOnceWith(
+        "monitor-1",
+      )
     })
 
     // BullMQ marca el job como fallido si `process` lanza.
     test("propagates service errors so the job fails", async ({
-      monitorsService,
+      checksService,
       consumer,
     }) => {
-      monitorsService.runMonitor.mockRejectedValueOnce(new NotFoundException())
+      checksService.createCheck.mockRejectedValueOnce(new NotFoundException())
 
       await expect(consumer.process(job)).rejects.toBeInstanceOf(
         NotFoundException,

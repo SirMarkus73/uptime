@@ -35,7 +35,11 @@ export function MonitorListItem({ monitor }: MonitorListItemProps) {
       ) : (
         <StatusDot
           status={
-            monitor.isUp === null ? "unknown" : monitor.isUp ? "up" : "down"
+            monitor.lastCheck === null
+              ? "unknown"
+              : monitor.lastCheck.isUp
+                ? "up"
+                : "down"
           }
         />
       )}

@@ -21,7 +21,7 @@ describe("MonitorsController (e2e)", () => {
         name: "Example",
         webPage: "https://example.com/",
         ownedBy: user.id,
-        checks: [],
+        lastCheck: null,
         hasScheduler: true,
       })
     })
@@ -177,7 +177,22 @@ describe("MonitorsController (e2e)", () => {
 
       expect(response.body).toEqual(expect.schemaMatching(monitorListSchema))
       expect(response.body).toEqual([
-        expect.objectContaining({ id: own.id, isUp: null }),
+        expect.objectContaining({ id: own.id, lastCheck: null }),
+      ])
+    })
+
+    test("200 with the last check of each monitor", async ({ user, fetch }) => {
+      const monitor = await createMonitor(user)
+      fetch.mockResolvedValueOnce(new Response(null, { status: 503 }))
+      const { body: createdCheck } = await user.agent
+        .post(`/api/monitors/${monitor.id}/checks`)
+        .expect(201)
+
+      const response = await user.agent.get("/api/monitors").expect(200)
+
+      expect(response.body).toEqual(expect.schemaMatching(monitorListSchema))
+      expect(response.body).toEqual([
+        expect.objectContaining({ id: monitor.id, lastCheck: createdCheck }),
       ])
     })
 
@@ -198,7 +213,7 @@ describe("MonitorsController (e2e)", () => {
       expect(response.body).toMatchObject({
         id: monitor.id,
         executeEveryMinutes: 5,
-        checks: [],
+        lastCheck: null,
         hasScheduler: true,
       })
     })
@@ -218,18 +233,21 @@ describe("MonitorsController (e2e)", () => {
       expect(response.body).toMatchObject({ hasScheduler: false })
     })
 
-    test("200 without the fields the schema does not declare", async ({
+    test("200 with the last check, without the fields the schema does not declare", async ({
       user,
     }) => {
       const monitor = await createMonitor(user)
-      await user.agent.post(`/api/monitors/${monitor.id}/run`).expect(201)
+      const { body: createdCheck } = await user.agent
+        .post(`/api/monitors/${monitor.id}/checks`)
+        .expect(201)
 
       const response = await user.agent
         .get(`/api/monitors/${monitor.id}`)
         .expect(200)
 
-      expect(response.body.checks).toHaveLength(1)
-      expect(response.body.checks[0]).not.toHaveProperty("monitorId")
+      expect(response.body).toEqual(expect.schemaMatching(monitorDetailSchema))
+      expect(response.body.lastCheck).toEqual(createdCheck)
+      expect(response.body.lastCheck).not.toHaveProperty("monitorId")
     })
 
     test("400 when the id is not a uuid", async ({ user }) => {
@@ -259,55 +277,6 @@ describe("MonitorsController (e2e)", () => {
         .expect(404)
 
       expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
-    })
-  })
-
-  describe("POST /api/monitors/:monitorId/run", () => {
-    test("201 with the new check first", async ({ user, fetch }) => {
-      const monitor = await createMonitor(user)
-      fetch.mockResolvedValueOnce(new Response(null, { status: 200 }))
-
-      const response = await user.agent
-        .post(`/api/monitors/${monitor.id}/run`)
-        .expect(201)
-
-      expect(response.body).toEqual(expect.schemaMatching(monitorDetailSchema))
-      expect(response.body.checks).toEqual([
-        expect.objectContaining({ isUp: true, statusCode: 200 }),
-      ])
-    })
-
-    test("400 when the id is not a uuid", async ({ user }) => {
-      await user.agent.post("/api/monitors/not-a-uuid/run").expect(400)
-    })
-
-    test("401 without session", async ({ anonymous }) => {
-      await anonymous.post(`/api/monitors/${randomUUID()}/run`).expect(401)
-    })
-
-    test("404 when the monitor does not exist", async ({ user }) => {
-      const response = await user.agent
-        .post(`/api/monitors/${randomUUID()}/run`)
-        .expect(404)
-
-      expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
-    })
-
-    test("404 and no check when the monitor belongs to another user", async ({
-      user,
-      otherUser,
-    }) => {
-      const monitor = await createMonitor(otherUser)
-
-      const response = await user.agent
-        .post(`/api/monitors/${monitor.id}/run`)
-        .expect(404)
-
-      expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
-      const ownerView = await otherUser.agent
-        .get(`/api/monitors/${monitor.id}`)
-        .expect(200)
-      expect(ownerView.body.checks).toEqual([])
     })
   })
 

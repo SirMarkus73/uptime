@@ -92,80 +92,6 @@ describe("MonitorsRepository", () => {
     })
   })
 
-  describe("findWithChecks", () => {
-    const withChecks = {
-      ...stored,
-      checks: [
-        {
-          id: "3f2e1d0c-9b8a-4c7d-8e6f-5a4b3c2d1e0f",
-          isUp: true,
-          statusCode: 200,
-          responseTimeMs: 12.5,
-          errorCode: null,
-          checkedAt: "2026-09-30T00:00:01.000Z",
-          monitorId: MONITOR_ID,
-        },
-      ],
-    }
-
-    test("returns the monitor with its last 5 checks, newest first", async ({
-      db,
-      repository,
-    }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(withChecks)
-
-      const result = await repository.findWithChecks(MONITOR_ID)
-
-      expect(db.query.monitor.findFirst).toHaveBeenCalledExactlyOnceWith({
-        where: { id: MONITOR_ID },
-        with: {
-          checks: {
-            limit: 5,
-            orderBy: { checkedAt: "desc" },
-          },
-        },
-      })
-      expect(result).toEqual(withChecks)
-    })
-
-    test("limits the checks to the given maximum", async ({
-      db,
-      repository,
-    }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(withChecks)
-
-      await repository.findWithChecks(MONITOR_ID, 20)
-
-      expect(db.query.monitor.findFirst).toHaveBeenCalledExactlyOnceWith({
-        where: { id: MONITOR_ID },
-        with: {
-          checks: {
-            limit: 20,
-            orderBy: { checkedAt: "desc" },
-          },
-        },
-      })
-    })
-
-    test("returns undefined when the monitor does not exist", async ({
-      db,
-      repository,
-    }) => {
-      db.query.monitor.findFirst.mockResolvedValueOnce(undefined)
-
-      await expect(
-        repository.findWithChecks(MONITOR_ID),
-      ).resolves.toBeUndefined()
-    })
-
-    test("propagates database errors", async ({ db, repository }) => {
-      const error = new Error("connection lost")
-      db.query.monitor.findFirst.mockRejectedValueOnce(error)
-
-      await expect(repository.findWithChecks(MONITOR_ID)).rejects.toBe(error)
-    })
-  })
-
   describe("findMany", () => {
     test("returns the monitors owned by the user", async ({
       db,
@@ -189,16 +115,30 @@ describe("MonitorsRepository", () => {
     })
   })
 
-  describe("findManyWithStatus", () => {
-    test("returns the monitors owned by the user, newest first, with the state of their last check", async ({
+  describe("findManyWithLastCheck", () => {
+    test("returns the monitors owned by the user, newest first, with their last check", async ({
       db,
       repository,
     }) => {
       const { executeEveryMinutes: _, ...listed } = stored
-      const monitors = [{ ...listed, isUp: true }]
+      const monitors = [
+        {
+          ...listed,
+          checks: [
+            {
+              id: "3f2e1d0c-9b8a-4c7d-8e6f-5a4b3c2d1e0f",
+              isUp: true,
+              statusCode: 200,
+              responseTimeMs: 12.5,
+              errorCode: null,
+              checkedAt: "2026-09-30T00:00:01.000Z",
+            },
+          ],
+        },
+      ]
       db.query.monitor.findMany.mockResolvedValueOnce(monitors)
 
-      const result = await repository.findManyWithStatus(OWNER_ID)
+      const result = await repository.findManyWithLastCheck(OWNER_ID)
 
       expect(db.query.monitor.findMany).toHaveBeenCalledExactlyOnceWith({
         columns: {
@@ -210,7 +150,20 @@ describe("MonitorsRepository", () => {
         },
         orderBy: { createdAt: "desc" },
         where: { ownedBy: OWNER_ID },
-        extras: { isUp: expect.any(Function) },
+        with: {
+          checks: {
+            columns: {
+              id: true,
+              isUp: true,
+              statusCode: true,
+              responseTimeMs: true,
+              checkedAt: true,
+              errorCode: true,
+            },
+            limit: 1,
+            orderBy: { checkedAt: "desc" },
+          },
+        },
       })
       expect(result).toEqual(monitors)
     })
@@ -219,7 +172,9 @@ describe("MonitorsRepository", () => {
       const error = new Error("connection lost")
       db.query.monitor.findMany.mockRejectedValueOnce(error)
 
-      await expect(repository.findManyWithStatus(OWNER_ID)).rejects.toBe(error)
+      await expect(repository.findManyWithLastCheck(OWNER_ID)).rejects.toBe(
+        error,
+      )
     })
   })
 
