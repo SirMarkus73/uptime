@@ -1,3 +1,11 @@
+# [1.6.0](https://github.com/SirMarkus73/uptime/compare/v1.5.0...v1.6.0) (2026-10-08)
+
+
+### Features
+
+* **design-system:** Añadir título y variante ghost al componente Alert ([dd8a4fd](https://github.com/SirMarkus73/uptime/commit/dd8a4fd87aff7a2b7c6e203c858a03e896f3026f))
+* **monitors:** Paginar el historial de comprobaciones con cursor ([7b610c3](https://github.com/SirMarkus73/uptime/commit/7b610c3e19ed2f784c80a27fdd53d87ca8aeda18))
+
 # [1.5.0](https://github.com/SirMarkus73/uptime/compare/v1.4.0...v1.5.0) (2026-10-07)
 
 
