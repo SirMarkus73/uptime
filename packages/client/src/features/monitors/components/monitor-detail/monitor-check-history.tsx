@@ -1,7 +1,11 @@
 import { tv } from "tailwind-variants"
+import { Alert } from "#/core/design-system/alert"
+import { Button } from "#/core/design-system/button"
 import { RelativeTime } from "#/core/design-system/relative-time"
 import { formatResponseTime } from "#/core/lib/helpers"
-import type { MonitorCheck } from "../../interfaces/monitor"
+import { useMonitorChecks } from "../../api/queries"
+import type { CheckListItem } from "../../interfaces/check"
+import type { MonitorDetail } from "../../interfaces/monitor"
 
 const checkRow = tv({
   slots: {
@@ -19,10 +23,31 @@ const checkRow = tv({
 })
 
 type MonitorCheckHistoryProps = {
-  checks: MonitorCheck[]
+  monitorId: MonitorDetail["id"]
 }
 
-export function MonitorCheckHistory({ checks }: MonitorCheckHistoryProps) {
+export function MonitorCheckHistoryLoading() {
+  return "loading"
+}
+
+export function MonitorCheckHistoryError() {
+  return "error"
+}
+
+export function MonitorCheckHistory({ monitorId }: MonitorCheckHistoryProps) {
+  const {
+    data: paginatedChecks,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+  } = useMonitorChecks(monitorId)
+
+  if (isLoading) return <MonitorCheckHistoryLoading />
+  if (isError || !paginatedChecks) return <MonitorCheckHistoryError />
+
+  const checks = paginatedChecks.pages.flat()
+
   const upCount = checks.filter((check) => check.isUp).length
   const slowestMs = Math.max(...checks.map((check) => check.responseTimeMs))
 
@@ -53,12 +78,20 @@ export function MonitorCheckHistory({ checks }: MonitorCheckHistoryProps) {
           ))}
         </ol>
       )}
+
+      {hasNextPage ? (
+        <Button variant="secondary" onClick={() => fetchNextPage()}>
+          Cargar Mas
+        </Button>
+      ) : (
+        <Alert variant="ghost">Parece que has llegado al final</Alert>
+      )}
     </section>
   )
 }
 
 type CheckRowProps = {
-  check: MonitorCheck
+  check: CheckListItem
   slowestMs: number
 }
 

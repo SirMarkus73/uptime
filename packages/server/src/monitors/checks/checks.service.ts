@@ -3,11 +3,19 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common"
+import type { UserSession } from "@thallesp/nestjs-better-auth"
+import { db } from "../../db/index.js"
 import { UptimeService } from "../../uptime/uptime.service.js"
-import { MonitorDetailDto } from "../dto/monitor.dto.js"
+import { MonitorDetailDto, MonitorIdFieldDto } from "../dto/monitor.dto.js"
 import { MonitorsRepository } from "../monitors.repository.js"
 import { ChecksRepository } from "./checks.repository.js"
 import { CheckDto, CheckListDto } from "./dto/check.dto.js"
+import {
+  type ChecksCursorDto,
+  encodeChecksCursor,
+  FIND_ALL_PAGE_SIZE,
+  type FindAllChecksDto,
+} from "./dto/find-all.dto.js"
 
 @Injectable()
 export class ChecksService {
@@ -29,6 +37,58 @@ export class ChecksService {
     if (!monitor) throw new NotFoundException()
 
     return monitor
+  }
+
+  async findAll(
+    session: UserSession,
+    monitorId: MonitorIdFieldDto,
+    cursor?: ChecksCursorDto,
+  ): Promise<FindAllChecksDto> {
+    const { user } = session
+
+    let checks: Awaited<ReturnType<typeof db.query.check.findMany>>
+
+    try {
+      checks = await db.query.check.findMany({
+        where: {
+          monitorId,
+          monitor: {
+            ownedBy: user.id,
+          },
+          ...(cursor && {
+            OR: [
+              { checkedAt: { lt: cursor.checkedAt } },
+              { checkedAt: cursor.checkedAt, id: { lte: cursor.id } },
+            ],
+          }),
+        },
+        orderBy: {
+          checkedAt: "desc",
+          id: "desc",
+        },
+        limit: FIND_ALL_PAGE_SIZE + 1,
+      })
+    } catch {
+      throw new InternalServerErrorException()
+    }
+
+    const next = checks.at(FIND_ALL_PAGE_SIZE)
+    const nextCursor = next
+      ? encodeChecksCursor({
+          checkedAt: new Date(next.checkedAt).toISOString(),
+          id: next.id,
+        })
+      : null
+
+    const data = checks.slice(0, FIND_ALL_PAGE_SIZE)
+
+    return {
+      data,
+      meta: {
+        nextCursor,
+        size: data.length,
+      },
+    }
   }
 
   async findSinceDays(

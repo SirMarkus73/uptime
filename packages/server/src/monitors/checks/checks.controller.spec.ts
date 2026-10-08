@@ -37,6 +37,7 @@ const test = baseTest
   .extend("checksService", () => ({
     findMonitor: vi.fn<ChecksService["findMonitor"]>(),
     findSinceDays: vi.fn<ChecksService["findSinceDays"]>(),
+    findAll: vi.fn<ChecksService["findAll"]>(),
     createCheck: vi.fn<ChecksService["createCheck"]>(),
   }))
   .extend("controller", async ({ checksService }) => {
@@ -112,6 +113,63 @@ describe("ChecksController", () => {
 
       await expect(
         controller.findSinceDays("monitor-1", { sinceDays: 7 }, session),
+      ).rejects.toBeInstanceOf(InternalServerErrorException)
+    })
+  })
+
+  describe("findAll", () => {
+    const page = {
+      data: [{ ...createdCheck, monitorId: "monitor-1" }],
+      meta: { nextCursor: null, size: 1 },
+    }
+
+    test("returns the page of checks of the user's monitor", async ({
+      checksService,
+      controller,
+    }) => {
+      checksService.findAll.mockResolvedValueOnce(page)
+
+      const result = await controller.findAll(
+        { cursor: undefined },
+        { monitorId: "monitor-1" },
+        session,
+      )
+
+      expect(checksService.findAll).toHaveBeenCalledExactlyOnceWith(
+        session,
+        "monitor-1",
+        undefined,
+      )
+      expect(result).toEqual(page)
+    })
+
+    test("passes the decoded cursor to the service", async ({
+      checksService,
+      controller,
+    }) => {
+      const cursor = { checkedAt: "2026-09-30T00:00:01.000Z", id: "check-1" }
+      checksService.findAll.mockResolvedValueOnce(page)
+
+      await controller.findAll({ cursor }, { monitorId: "monitor-1" }, session)
+
+      expect(checksService.findAll).toHaveBeenCalledExactlyOnceWith(
+        session,
+        "monitor-1",
+        cursor,
+      )
+    })
+
+    test("propagates service errors", async ({ checksService, controller }) => {
+      checksService.findAll.mockRejectedValueOnce(
+        new InternalServerErrorException(),
+      )
+
+      await expect(
+        controller.findAll(
+          { cursor: undefined },
+          { monitorId: "monitor-1" },
+          session,
+        ),
       ).rejects.toBeInstanceOf(InternalServerErrorException)
     })
   })

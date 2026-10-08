@@ -5,7 +5,8 @@ import { RelativeTime } from "#/core/design-system/relative-time"
 import { StatusDot } from "#/core/design-system/status-dot"
 import { formatResponseTime } from "#/core/lib/helpers"
 import { useRunMonitor } from "../../api/mutations"
-import type { MonitorCheck, MonitorDetail } from "../../interfaces/monitor"
+import type { CheckStat } from "../../interfaces/check"
+import type { MonitorDetail } from "../../interfaces/monitor"
 import { ToggleMonitorSchedulerButton } from "../monitor-action-buttons/toggle-monitor-scheduler-button"
 
 // El estado se pinta como un rótulo de LEDs: encendido en verde o rojo,
@@ -31,7 +32,7 @@ const statusLabels: Record<MonitorStatus, string> = {
   checking: "Comprobando",
 }
 
-function LastCheckSummary({ check }: { check: MonitorCheck | null }) {
+function LastCheckSummary({ check }: { check: CheckStat | null }) {
   if (!check) return "Comprueba la web para registrar su primer estado."
 
   const when = <RelativeTime date={check.checkedAt} />

@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react"
 import {
   isMonitorNotFoundError,
   useMonitor,
-  useMonitorChecks,
+  useMonitorChecksStats,
 } from "../api/queries"
 import { MonitorCheckHistory } from "../components/monitor-detail/monitor-check-history"
 import { MonitorDetailError } from "../components/monitor-detail/monitor-detail-error"
@@ -18,7 +18,7 @@ type MonitorDetailPageProps = {
 
 export function MonitorDetailPage({ monitorId }: MonitorDetailPageProps) {
   const { data: monitor, error, isFetching, refetch } = useMonitor(monitorId)
-  const { data: checks } = useMonitorChecks(monitorId)
+  const { data: checks } = useMonitorChecksStats(monitorId)
 
   // Lo recoge el `notFoundComponent` de la ruta.
   if (isMonitorNotFoundError(error)) {
@@ -42,7 +42,7 @@ export function MonitorDetailPage({ monitorId }: MonitorDetailPageProps) {
             {checks && (
               <>
                 <MonitorResponseTimeChart checks={checks} />
-                <MonitorCheckHistory checks={checks} />
+                <MonitorCheckHistory monitorId={monitorId} />
               </>
             )}
           </div>

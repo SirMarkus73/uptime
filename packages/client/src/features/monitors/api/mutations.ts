@@ -5,7 +5,7 @@ import { authClient } from "#/features/auth/auth-client"
 import { $api } from "#/shared/api/fetch-client"
 import type { MonitorDetail, MonitorListItem } from "../interfaces/monitor"
 import {
-  monitorChecksQueryOptions,
+  monitorChecksStatsQueryOptions,
   monitorQueryOptions,
   monitorsQueryOptions,
 } from "./queries"
@@ -165,7 +165,7 @@ export function useRunMonitor(monitorId: MonitorDetail["id"]) {
         )
 
         client.setQueryData(
-          monitorChecksQueryOptions(monitorId).queryKey,
+          monitorChecksStatsQueryOptions(monitorId).queryKey,
           (checks) => (checks ? [createdCheck, ...checks] : checks),
         )
 

@@ -79,7 +79,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/monitors/{monitorId}/checks": {
+    "/api/monitors/{monitorId}/checks/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -87,6 +87,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["ChecksController_findSinceDays"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/monitors/{monitorId}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ChecksController_findAll"];
         put?: never;
         post: operations["ChecksController_createCheck"];
         delete?: never;
@@ -880,6 +896,93 @@ export interface operations {
                         message: string;
                         /** @enum {number} */
                         statusCode: 404;
+                    };
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        statusCode?: 429;
+                        /** @example ThrottlerException: Too Many Requests */
+                        message?: string;
+                    };
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 500;
+                    };
+                };
+            };
+        };
+    };
+    ChecksController_findAll: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                monitorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: date-time */
+                            checkedAt: string;
+                            errorCode: string | null;
+                            isUp: boolean;
+                            /** Format: uuid */
+                            monitorId: string;
+                            /** @example 14.2841248 */
+                            responseTimeMs: number;
+                            statusCode: number | null;
+                        }[];
+                        meta: {
+                            size: number;
+                            /** Format: base64url */
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Unauthorized */
+                        message: string;
+                        /** @enum {number} */
+                        statusCode: 401;
                     };
                 };
             };

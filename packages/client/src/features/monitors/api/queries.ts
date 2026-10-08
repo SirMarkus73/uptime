@@ -1,6 +1,7 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
 import { minutesToMs } from "#/core/lib/helpers"
 import { $api } from "#/shared/api/fetch-client"
+import type { CheckListMeta } from "../interfaces/check"
 import type { MonitorDetail } from "../interfaces/monitor"
 
 const MAX_RETRIES = 3
@@ -18,7 +19,7 @@ export function isMonitorNotFoundError(
 export const monitorsQueryOptions = () =>
   queryOptions($api.queryOptions("get", "/api/monitors"))
 
-export const monitorQueryOptions = (monitorId: string) =>
+export const monitorQueryOptions = (monitorId: MonitorDetail["id"]) =>
   queryOptions(
     $api.queryOptions(
       "get",
@@ -36,11 +37,13 @@ export const monitorQueryOptions = (monitorId: string) =>
   )
 
 // Sin `sinceDays`: el servidor devuelve los checks de los últimos 5 días.
-export const monitorChecksQueryOptions = (monitorId: string) =>
+export const monitorChecksStatsQueryOptions = (
+  monitorId: MonitorDetail["id"],
+) =>
   queryOptions(
     $api.queryOptions(
       "get",
-      "/api/monitors/{monitorId}/checks",
+      "/api/monitors/{monitorId}/checks/stats",
       {
         params: { path: { monitorId } },
       },
@@ -52,6 +55,15 @@ export const monitorChecksQueryOptions = (monitorId: string) =>
     ),
   )
 
+export const monitorChecksQueryOptions = (
+  monitorId: MonitorDetail["id"],
+  cursor?: CheckListMeta["nextCursor"],
+) => {
+  return $api.queryOptions("get", "/api/monitors/{monitorId}/checks", {
+    params: { path: { monitorId }, query: { cursor: cursor || undefined } },
+  })
+}
+
 export function useMonitors() {
   return $api.useQuery("get", "/api/monitors")
 }
@@ -60,6 +72,25 @@ export function useMonitor(monitorId: MonitorDetail["id"]) {
   return useQuery(monitorQueryOptions(monitorId))
 }
 
+export function useMonitorChecksStats(monitorId: MonitorDetail["id"]) {
+  return useQuery(monitorChecksStatsQueryOptions(monitorId))
+}
+
 export function useMonitorChecks(monitorId: MonitorDetail["id"]) {
-  return useQuery(monitorChecksQueryOptions(monitorId))
+  return $api.useInfiniteQuery(
+    "get",
+    "/api/monitors/{monitorId}/checks",
+    {
+      params: { path: { monitorId } },
+    },
+    {
+      pageParamName: "cursor",
+      initialPageParam: null,
+      getNextPageParam: (lastPage) => lastPage.meta.nextCursor,
+      select: (data) => ({
+        ...data,
+        pages: data.pages.map((el) => el.data),
+      }),
+    },
+  )
 }

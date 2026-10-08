@@ -29,6 +29,13 @@ import {
   checkSchema,
 } from "./dto/check.dto.js"
 import {
+  type FindAllChecksParamsDto,
+  type FindAllChecksQueryDto,
+  findAllChecksParamsSchema,
+  findAllChecksQuerySchema,
+  findAllChecksSchema,
+} from "./dto/find-all.dto.js"
+import {
   type FindChecksSinceDaysQueryDto,
   findChecksSinceDaysQuerySchema,
 } from "./dto/find-check.dto.js"
@@ -44,7 +51,7 @@ export class ChecksController {
   })
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
   @ApiSerializedResponse({ status: HttpStatus.OK, schema: checkListSchema })
-  @Get()
+  @Get("stats")
   async findSinceDays(
     @Param("monitorId", { schema: monitorIdFieldSchema })
     monitorId: MonitorIdFieldDto,
@@ -58,6 +65,22 @@ export class ChecksController {
     if (monitor.ownedBy !== user.id) throw new NotFoundException()
 
     return this.checksService.findSinceDays(monitorId, sinceDays)
+  }
+
+  @ApiAuthenticationErrors()
+  @ApiBadRequestResponse()
+  @ApiInternalServerErrorResponse({
+    standardSchema: internalServerErrorSchema,
+  })
+  @ApiSerializedResponse({ status: HttpStatus.OK, schema: findAllChecksSchema })
+  @Get()
+  findAll(
+    @Query({ schema: findAllChecksQuerySchema }) query: FindAllChecksQueryDto,
+    @Param({ schema: findAllChecksParamsSchema })
+    params: FindAllChecksParamsDto,
+    @Session() session: UserSession,
+  ) {
+    return this.checksService.findAll(session, params.monitorId, query.cursor)
   }
 
   @ApiAuthenticationErrors()

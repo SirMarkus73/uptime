@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts"
 import { formatDateTime, formatResponseTime } from "#/core/lib/helpers"
-import type { MonitorCheck } from "../../interfaces/monitor"
+import type { CheckStat, CheckStatsList } from "../../interfaces/check"
 
 // Colores del tema (`styles.css`) para los atributos SVG de Recharts.
 const colors = {
@@ -23,7 +23,7 @@ const colors = {
 }
 
 type MonitorResponseTimeChartProps = {
-  checks: MonitorCheck[]
+  checks: CheckStatsList
 }
 
 export function MonitorResponseTimeChart({
@@ -130,7 +130,7 @@ export function MonitorResponseTimeChart({
 type CheckDotProps = {
   cx?: number
   cy?: number
-  check: MonitorCheck
+  check: CheckStat
   r?: number
 }
 
@@ -150,7 +150,7 @@ function CheckDot({ cx, cy, check, r = 4 }: CheckDotProps) {
 }
 
 function ResponseTimeTooltip({ active, payload }: TooltipContentProps) {
-  const check = payload?.[0]?.payload as MonitorCheck | undefined
+  const check = payload?.[0]?.payload as CheckStat | undefined
   if (!active || !check) return null
 
   return (
