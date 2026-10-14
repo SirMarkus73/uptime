@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common"
 import type { UserSession } from "@thallesp/nestjs-better-auth"
 import { startOfDay, startOfMonth, startOfWeek, startOfYear } from "date-fns"
+import { sql } from "drizzle-orm"
 import { db } from "../../db/index.js"
 import { UptimeService } from "../../uptime/uptime.service.js"
 import { MonitorDetailDto, MonitorIdFieldDto } from "../dto/monitor.dto.js"
@@ -52,10 +53,8 @@ export class ChecksService {
   ): Promise<FindAllChecksDto> {
     const { user } = session
 
-    let checks: Awaited<ReturnType<typeof db.query.check.findMany>>
-
-    try {
-      checks = await db.query.check.findMany({
+    const checks = await db.query.check
+      .findMany({
         where: {
           monitorId,
           monitor: {
@@ -72,21 +71,27 @@ export class ChecksService {
           checkedAt: "desc",
           id: "desc",
         },
+        // `checkedAt` sale redondeado a milisegundos (ver `db/index.ts`), pero
+        // Postgres lo guarda con microsegundos. El cursor necesita la fecha
+        // exacta: con la redondeada se saltaría el check que lo abre.
+        extras: {
+          cursorCheckedAt: (t) =>
+            sql<string>`to_char(${t.checkedAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+        },
         limit: FIND_ALL_PAGE_SIZE + 1,
       })
-    } catch {
-      throw new InternalServerErrorException()
-    }
+      .catch(() => {
+        throw new InternalServerErrorException()
+      })
 
     const next = checks.at(FIND_ALL_PAGE_SIZE)
     const nextCursor = next
-      ? encodeChecksCursor({
-          checkedAt: new Date(next.checkedAt).toISOString(),
-          id: next.id,
-        })
+      ? encodeChecksCursor({ checkedAt: next.cursorCheckedAt, id: next.id })
       : null
 
-    const data = checks.slice(0, FIND_ALL_PAGE_SIZE)
+    const data = checks
+      .slice(0, FIND_ALL_PAGE_SIZE)
+      .map(({ cursorCheckedAt: _, ...check }) => check)
 
     return {
       data,

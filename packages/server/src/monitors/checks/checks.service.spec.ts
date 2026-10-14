@@ -56,14 +56,24 @@ const stat: CheckStatDto = {
 
 const session = { user: { id: "user-1" } } as UserSession
 
-// Filas en el formato en que Postgres devuelve `timestamptz`, ordenadas de más
-// reciente a más antigua como en la consulta
+// Filas como las devuelve la consulta, de más reciente a más antigua:
+// `checkedAt` redondeado a milisegundos por el codec y `cursorCheckedAt` con
+// los microsegundos que guarda Postgres
 function checkRows(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
-    ...created,
-    id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
-    checkedAt: `2026-09-30 00:${String(59 - i).padStart(2, "0")}:00.123+00`,
-  }))
+  return Array.from({ length: count }, (_, i) => {
+    const minute = String(59 - i).padStart(2, "0")
+    return {
+      ...created,
+      id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+      checkedAt: `2026-09-30T00:${minute}:00.123Z`,
+      cursorCheckedAt: `2026-09-30T00:${minute}:00.123456Z`,
+    }
+  })
+}
+
+// Lo que devuelve el servicio: sin el campo auxiliar del cursor
+function withoutCursor(rows: ReturnType<typeof checkRows>) {
+  return rows.map(({ cursorCheckedAt: _, ...check }) => check)
 }
 
 const test = baseTest
@@ -157,13 +167,14 @@ describe("ChecksService", () => {
         monitor: { ownedBy: "user-1" },
       })
       expect(query.limit).toBe(21)
+      expect(query.extras).toEqual({ cursorCheckedAt: expect.any(Function) })
       expect(result).toEqual({
-        data: rows,
+        data: withoutCursor(rows),
         meta: { nextCursor: null, size: 3 },
       })
     })
 
-    test("returns 20 checks and a cursor with checkedAt and id of the next one", async ({
+    test("returns 20 checks and a cursor with the exact checkedAt and id of the next one", async ({
       service,
     }) => {
       const rows = checkRows(21)
@@ -171,10 +182,10 @@ describe("ChecksService", () => {
 
       const result = await service.findAll(session, MONITOR_ID)
 
-      expect(result.data).toEqual(rows.slice(0, 20))
+      expect(result.data).toEqual(withoutCursor(rows.slice(0, 20)))
       expect(result.meta.size).toBe(20)
       expect(decodeChecksCursor(result.meta.nextCursor ?? "")).toEqual({
-        checkedAt: "2026-09-30T00:39:00.123Z",
+        checkedAt: "2026-09-30T00:39:00.123456Z",
         id: rows[20]?.id,
       })
     })
