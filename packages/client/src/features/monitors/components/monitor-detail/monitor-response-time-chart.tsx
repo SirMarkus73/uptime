@@ -1,4 +1,6 @@
 import { format } from "date-fns"
+import { es } from "date-fns/locale"
+import { useState } from "react"
 import {
   Area,
   AreaChart,
@@ -9,8 +11,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { tv } from "tailwind-variants"
+import { SegmentedControl } from "#/core/design-system/segmented-control"
+import { Skeleton } from "#/core/design-system/skeleton"
 import { formatDateTime, formatResponseTime } from "#/core/lib/helpers"
-import type { CheckStat, CheckStatsList } from "../../interfaces/check"
+import { useMonitorChecksStats } from "../../api/queries"
+import type { CheckStat, CheckStatsDetail } from "../../interfaces/check"
+import type { MonitorDetail } from "../../interfaces/monitor"
 
 // Colores del tema (`styles.css`) para los atributos SVG de Recharts.
 const colors = {
@@ -22,107 +29,170 @@ const colors = {
   down: "var(--color-down)",
 }
 
+const periods = [
+  { value: "today", label: "Hoy" },
+  { value: "week", label: "Semana" },
+  { value: "month", label: "Mes" },
+  { value: "year", label: "Año" },
+] as const satisfies readonly { value: CheckStatsDetail; label: string }[]
+
+// Cada punto es un intervalo (15 min, 1 h, 6 h o 1 día según el periodo).
+const tickFormats: Record<CheckStatsDetail, string> = {
+  today: "HH:mm",
+  week: "EEE HH:mm",
+  month: "d MMM",
+  year: "d MMM",
+}
+
+const figure = tv({
+  base: "h-56 rounded-2xl border border-neutral-800 bg-neutral-900 py-4 pr-5 shadow-xl shadow-black/40 transition-opacity",
+  variants: {
+    // Mientras llega otro periodo se atenúa el que se está viendo.
+    isStale: { true: "opacity-50" },
+    isEmpty: {
+      true: "flex items-center justify-center px-5 text-sm text-neutral-500",
+    },
+  },
+})
+
 type MonitorResponseTimeChartProps = {
-  checks: CheckStatsList
+  monitorId: MonitorDetail["id"]
 }
 
 export function MonitorResponseTimeChart({
-  checks,
+  monitorId,
 }: MonitorResponseTimeChartProps) {
-  // Con un solo punto no hay evolución que enseñar.
-  if (checks.length < 2) return null
+  const [detail, setDetail] = useState<CheckStatsDetail>("today")
+  const {
+    data: checks,
+    isPending,
+    isError,
+    isPlaceholderData,
+  } = useMonitorChecksStats(monitorId, detail)
 
-  // La API devuelve primero la más reciente; el gráfico se lee de izquierda a derecha.
-  const data = [...checks].reverse()
-  const averageMs =
-    checks.reduce((total, check) => total + check.responseTimeMs, 0) /
-    checks.length
+  // Media ponderada: cada intervalo agrupa un número distinto de checks.
+  const totalChecks =
+    checks?.reduce((total, check) => total + check.checks, 0) ?? 0
+  const averageMs = checks?.length
+    ? checks.reduce(
+        (total, check) => total + check.responseTimeMs * check.checks,
+        0,
+      ) / totalChecks
+    : null
 
   return (
     <section aria-labelledby="response-time" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 id="response-time" className="text-sm font-medium text-neutral-400">
           Tiempo de respuesta
         </h2>
-        <p className="text-sm text-neutral-500">
-          Media{" "}
-          <span className="text-neutral-200 tabular-nums">
-            {formatResponseTime(averageMs)}
-          </span>
-        </p>
+        <div className="flex items-center gap-4">
+          {averageMs !== null && (
+            <p className="text-sm text-neutral-500">
+              Media{" "}
+              <span className="text-neutral-200 tabular-nums">
+                {formatResponseTime(averageMs)}
+              </span>
+            </p>
+          )}
+          <SegmentedControl
+            aria-label="Periodo"
+            value={detail}
+            onValueChange={setDetail}
+            options={periods}
+          />
+        </div>
       </div>
 
-      {/* El detalle accesible de cada comprobación está en la lista de debajo. */}
-      <figure
-        aria-hidden="true"
-        className="h-56 rounded-2xl border border-neutral-800 bg-neutral-900 py-4 pr-5 shadow-xl shadow-black/40"
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={data}
-            margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
-            accessibilityLayer={false}
-          >
-            <defs>
-              <linearGradient
-                id="response-time-fill"
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor={colors.line} stopOpacity={0.18} />
-                <stop offset="100%" stopColor={colors.line} stopOpacity={0} />
-              </linearGradient>
-            </defs>
+      {isPending ? (
+        <Skeleton className="h-56" />
+      ) : isError ? (
+        <p className={figure({ isEmpty: true })}>
+          No se ha podido cargar el tiempo de respuesta.
+        </p>
+      ) : checks.length === 0 ? (
+        <p className={figure({ isEmpty: true, isStale: isPlaceholderData })}>
+          No hay comprobaciones en este periodo.
+        </p>
+      ) : (
+        // El detalle accesible de cada comprobación está en la lista de debajo.
+        <figure
+          aria-hidden="true"
+          className={figure({ isStale: isPlaceholderData })}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={[...checks].reverse()}
+              margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
+              accessibilityLayer={false}
+            >
+              <defs>
+                <linearGradient
+                  id="response-time-fill"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor={colors.line}
+                    stopOpacity={0.18}
+                  />
+                  <stop offset="100%" stopColor={colors.line} stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-            <CartesianGrid
-              vertical={false}
-              stroke={colors.grid}
-              strokeDasharray="2 4"
-            />
-            <XAxis
-              dataKey="checkedAt"
-              tickFormatter={(date: string) => format(date, "HH:mm:ss")}
-              tick={{ fill: colors.axis, fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-            />
-            <YAxis
-              dataKey="responseTimeMs"
-              tickFormatter={(ms: number) => `${Math.round(ms)} ms`}
-              tick={{ fill: colors.axis, fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              width={64}
-            />
+              <CartesianGrid
+                vertical={false}
+                stroke={colors.grid}
+                strokeDasharray="2 4"
+              />
+              <XAxis
+                dataKey="checkedAt"
+                tickFormatter={(date: string) =>
+                  format(date, tickFormats[detail], { locale: es })
+                }
+                tick={{ fill: colors.axis, fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+              />
+              <YAxis
+                dataKey="responseTimeMs"
+                tickFormatter={(ms: number) => `${Math.round(ms)} ms`}
+                tick={{ fill: colors.axis, fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                width={64}
+              />
 
-            <Tooltip
-              content={ResponseTimeTooltip}
-              cursor={{ stroke: colors.axis, strokeDasharray: "2 4" }}
-              isAnimationActive={false}
-            />
+              <Tooltip
+                content={ResponseTimeTooltip}
+                cursor={{ stroke: colors.axis, strokeDasharray: "2 4" }}
+                isAnimationActive={false}
+              />
 
-            <Area
-              type="monotone"
-              dataKey="responseTimeMs"
-              stroke={colors.line}
-              strokeWidth={2}
-              fill="url(#response-time-fill)"
-              dot={({ cx, cy, payload, index }) => (
-                <CheckDot key={index} cx={cx} cy={cy} check={payload} />
-              )}
-              activeDot={({ cx, cy, payload }) => (
-                <CheckDot cx={cx} cy={cy} check={payload} r={6} />
-              )}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </figure>
+              <Area
+                type="monotone"
+                dataKey="responseTimeMs"
+                stroke={colors.line}
+                strokeWidth={2}
+                fill="url(#response-time-fill)"
+                dot={({ cx, cy, payload, index }) => (
+                  <CheckDot key={index} cx={cx} cy={cy} check={payload} />
+                )}
+                activeDot={({ cx, cy, payload }) => (
+                  <CheckDot cx={cx} cy={cy} check={payload} r={6} />
+                )}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </figure>
+      )}
     </section>
   )
 }
@@ -134,8 +204,6 @@ type CheckDotProps = {
   r?: number
 }
 
-// Cada punto lleva el color del estado de la comprobación, con un anillo del
-// color del panel para separarlo de la línea.
 function CheckDot({ cx, cy, check, r = 4 }: CheckDotProps) {
   return (
     <circle
@@ -162,9 +230,14 @@ function ResponseTimeTooltip({ active, payload }: TooltipContentProps) {
         <span
           className={`size-2 rounded-full ${check.isUp ? "bg-up" : "bg-down"}`}
         />
-        {check.isUp ? "Operativa" : "Caída"} ·{" "}
-        {check.statusCode ?? check.errorCode ?? "Sin respuesta"}
+        {check.upChecks} de {check.checks} operativas
       </span>
+      {check.checks > 1 && (
+        <span className="text-neutral-400 tabular-nums">
+          {formatResponseTime(check.minResponseTimeMs)} –{" "}
+          {formatResponseTime(check.maxResponseTimeMs)}
+        </span>
+      )}
       <span className="text-neutral-500">
         {formatDateTime(check.checkedAt)}
       </span>

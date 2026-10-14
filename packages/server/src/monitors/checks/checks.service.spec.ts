@@ -1,14 +1,15 @@
 import { InternalServerErrorException, NotFoundException } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import type { UserSession } from "@thallesp/nestjs-better-auth"
-import { test as baseTest } from "vitest"
+import { test as baseTest, onTestFinished } from "vitest"
 import type { CheckStateResultDto } from "../../uptime/dto/check-state.dto.js"
 import { UptimeService } from "../../uptime/uptime.service.js"
 import { MonitorsRepository } from "../monitors.repository.js"
 import { ChecksRepository } from "./checks.repository.js"
 import { ChecksService } from "./checks.service.js"
-import { type CheckDto, checkListSchema, checkSchema } from "./dto/check.dto.js"
+import { type CheckDto, checkSchema } from "./dto/check.dto.js"
 import { decodeChecksCursor } from "./dto/find-all.dto.js"
+import { type CheckStatDto, checkStatListSchema } from "./dto/find-check.dto.js"
 
 // El servicio usa los repositorios, que se sustituyen por mocks, y `findAll`
 // consulta `db` directamente; se mockea la base de datos para que no se abra
@@ -43,6 +44,16 @@ const checkResult: CheckStateResultDto = {
 
 const created: CheckDto = { id: CHECK_ID, ...checkResult }
 
+const stat: CheckStatDto = {
+  checkedAt: "2026-10-14T15:15:00.000Z",
+  isUp: false,
+  responseTimeMs: 12.5,
+  minResponseTimeMs: 10,
+  maxResponseTimeMs: 15,
+  checks: 3,
+  upChecks: 2,
+}
+
 const session = { user: { id: "user-1" } } as UserSession
 
 // Filas en el formato en que Postgres devuelve `timestamptz`, ordenadas de más
@@ -57,7 +68,7 @@ function checkRows(count: number) {
 
 const test = baseTest
   .extend("checksRepository", () => ({
-    findAllSinceDays: vi.fn<ChecksRepository["findAllSinceDays"]>(),
+    findStatsSince: vi.fn<ChecksRepository["findStatsSince"]>(),
     create: vi.fn<ChecksRepository["create"]>(),
   }))
   .extend("monitorsRepository", () => ({
@@ -209,35 +220,53 @@ describe("ChecksService", () => {
     })
   })
 
-  describe("findSinceDays", () => {
-    test("returns the checks of the monitor since the given days", async ({
-      checksRepository,
-      service,
-    }) => {
-      checksRepository.findAllSinceDays.mockResolvedValueOnce([created])
+  describe("stats", () => {
+    // Miércoles 14 de octubre de 2026, 15:30 en hora local
+    const now = new Date(2026, 9, 14, 15, 30)
 
-      const result = await service.findSinceDays(MONITOR_ID, 7)
+    test.for([
+      ["getTodayStats", new Date(2026, 9, 14), "15 minutes"],
+      ["getWeekStats", new Date(2026, 9, 12), "1 hour"],
+      ["getMonthStats", new Date(2026, 9, 1), "6 hours"],
+      ["getYearStats", new Date(2026, 0, 1), "1 day"],
+    ] as const)(
+      "%s returns the checks since %s grouped every %s",
+      async ([method, since, bucket], { checksRepository, service }) => {
+        vi.useFakeTimers({ now })
+        onTestFinished(() => {
+          vi.useRealTimers()
+        })
+        checksRepository.findStatsSince.mockResolvedValueOnce([stat])
 
-      expect(checksRepository.findAllSinceDays).toHaveBeenCalledExactlyOnceWith(
-        MONITOR_ID,
-        7,
-      )
-      expect(result).toEqual(expect.schemaMatching(checkListSchema))
-      expect(result).toEqual([created])
-    })
+        const result = await service[method](MONITOR_ID)
 
-    test("throws InternalServerErrorException when the checks cannot be read", async ({
-      checksRepository,
-      service,
-    }) => {
-      checksRepository.findAllSinceDays.mockRejectedValueOnce(
-        new Error("connection lost"),
-      )
+        expect(checksRepository.findStatsSince).toHaveBeenCalledExactlyOnceWith(
+          MONITOR_ID,
+          since,
+          bucket,
+        )
+        expect(result).toEqual(expect.schemaMatching(checkStatListSchema))
+        expect(result).toEqual([stat])
+      },
+    )
 
-      await expect(service.findSinceDays(MONITOR_ID, 7)).rejects.toBeInstanceOf(
-        InternalServerErrorException,
-      )
-    })
+    test.for([
+      "getTodayStats",
+      "getWeekStats",
+      "getMonthStats",
+      "getYearStats",
+    ] as const)(
+      "%s throws InternalServerErrorException when the checks cannot be read",
+      async (method, { checksRepository, service }) => {
+        checksRepository.findStatsSince.mockRejectedValueOnce(
+          new Error("connection lost"),
+        )
+
+        await expect(service[method](MONITOR_ID)).rejects.toBeInstanceOf(
+          InternalServerErrorException,
+        )
+      },
+    )
   })
 
   describe("createCheck", () => {

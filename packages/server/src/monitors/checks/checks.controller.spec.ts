@@ -6,6 +6,7 @@ import { MonitorsRepository } from "../monitors.repository.js"
 import { ChecksController } from "./checks.controller.js"
 import { ChecksService } from "./checks.service.js"
 import type { CheckDto } from "./dto/check.dto.js"
+import type { CheckStatDto } from "./dto/find-check.dto.js"
 
 // Importar el servicio importa los repositorios; se mockea la base de datos
 // para que no se abra ninguna conexión.
@@ -33,10 +34,23 @@ const createdCheck: CheckDto = {
   checkedAt: "2026-09-30T00:00:01.000Z",
 }
 
+const stat: CheckStatDto = {
+  checkedAt: "2026-10-14T15:15:00.000Z",
+  isUp: false,
+  responseTimeMs: 12.5,
+  minResponseTimeMs: 10,
+  maxResponseTimeMs: 15,
+  checks: 3,
+  upChecks: 2,
+}
+
 const test = baseTest
   .extend("checksService", () => ({
     findMonitor: vi.fn<ChecksService["findMonitor"]>(),
-    findSinceDays: vi.fn<ChecksService["findSinceDays"]>(),
+    getTodayStats: vi.fn<ChecksService["getTodayStats"]>(),
+    getWeekStats: vi.fn<ChecksService["getWeekStats"]>(),
+    getMonthStats: vi.fn<ChecksService["getMonthStats"]>(),
+    getYearStats: vi.fn<ChecksService["getYearStats"]>(),
     findAll: vi.fn<ChecksService["findAll"]>(),
     createCheck: vi.fn<ChecksService["createCheck"]>(),
   }))
@@ -55,28 +69,39 @@ describe("ChecksController", () => {
   })
 
   describe("findSinceDays", () => {
-    test("returns the checks of the monitor since the given days", async ({
-      checksService,
-      controller,
-    }) => {
-      checksService.findMonitor.mockResolvedValueOnce(found)
-      checksService.findSinceDays.mockResolvedValueOnce([createdCheck])
+    const statsMethods = [
+      ["today", "getTodayStats"],
+      ["week", "getWeekStats"],
+      ["month", "getMonthStats"],
+      ["year", "getYearStats"],
+    ] as const
 
-      const result = await controller.findSinceDays(
-        "monitor-1",
-        { sinceDays: 7 },
-        session,
-      )
+    test.for(statsMethods)(
+      "returns the checks of the %s using %s",
+      async ([detail, method], { checksService, controller }) => {
+        checksService.findMonitor.mockResolvedValueOnce(found)
+        checksService[method].mockResolvedValueOnce([stat])
 
-      expect(checksService.findMonitor).toHaveBeenCalledExactlyOnceWith(
-        "monitor-1",
-      )
-      expect(checksService.findSinceDays).toHaveBeenCalledExactlyOnceWith(
-        "monitor-1",
-        7,
-      )
-      expect(result).toEqual([createdCheck])
-    })
+        const result = await controller.findSinceDays(
+          "monitor-1",
+          { detail },
+          session,
+        )
+
+        expect(checksService.findMonitor).toHaveBeenCalledExactlyOnceWith(
+          "monitor-1",
+        )
+        expect(checksService[method]).toHaveBeenCalledExactlyOnceWith(
+          "monitor-1",
+        )
+        for (const [, other] of statsMethods) {
+          if (other !== method) {
+            expect(checksService[other]).not.toHaveBeenCalled()
+          }
+        }
+        expect(result).toEqual([stat])
+      },
+    )
 
     test("throws NotFoundException and skips the read when the monitor belongs to another user", async ({
       checksService,
@@ -88,9 +113,9 @@ describe("ChecksController", () => {
       })
 
       await expect(
-        controller.findSinceDays("monitor-1", { sinceDays: 7 }, session),
+        controller.findSinceDays("monitor-1", { detail: "week" }, session),
       ).rejects.toBeInstanceOf(NotFoundException)
-      expect(checksService.findSinceDays).not.toHaveBeenCalled()
+      expect(checksService.getWeekStats).not.toHaveBeenCalled()
     })
 
     test("propagates NotFoundException when the monitor does not exist", async ({
@@ -100,19 +125,19 @@ describe("ChecksController", () => {
       checksService.findMonitor.mockRejectedValueOnce(new NotFoundException())
 
       await expect(
-        controller.findSinceDays("missing", { sinceDays: 7 }, session),
+        controller.findSinceDays("missing", { detail: "week" }, session),
       ).rejects.toBeInstanceOf(NotFoundException)
-      expect(checksService.findSinceDays).not.toHaveBeenCalled()
+      expect(checksService.getWeekStats).not.toHaveBeenCalled()
     })
 
     test("propagates service errors", async ({ checksService, controller }) => {
       checksService.findMonitor.mockResolvedValueOnce(found)
-      checksService.findSinceDays.mockRejectedValueOnce(
+      checksService.getWeekStats.mockRejectedValueOnce(
         new InternalServerErrorException(),
       )
 
       await expect(
-        controller.findSinceDays("monitor-1", { sinceDays: 7 }, session),
+        controller.findSinceDays("monitor-1", { detail: "week" }, session),
       ).rejects.toBeInstanceOf(InternalServerErrorException)
     })
   })

@@ -10,3 +10,8 @@ export type CheckListMeta = CheckListResponse["meta"]
 export type CheckStatsList =
   paths["/api/monitors/{monitorId}/checks/stats"]["get"]["responses"]["200"]["content"]["application/json"]
 export type CheckStat = CheckStatsList[number]
+export type CheckStatsDetail = NonNullable<
+  NonNullable<
+    paths["/api/monitors/{monitorId}/checks/stats"]["get"]["parameters"]["query"]
+  >["detail"]
+>

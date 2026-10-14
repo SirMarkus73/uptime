@@ -840,7 +840,7 @@ export interface operations {
     ChecksController_findSinceDays: {
         parameters: {
             query?: {
-                sinceDays?: number;
+                detail?: "today" | "month" | "week" | "year";
             };
             header?: never;
             path: {
@@ -856,15 +856,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** Format: date-time */
+                        /**
+                         * Format: date-time
+                         * @description Inicio del intervalo
+                         */
                         checkedAt: string;
-                        errorCode: string | null;
-                        /** Format: uuid */
-                        id: string;
+                        /** @description Si todos los checks del intervalo estuvieron operativos */
                         isUp: boolean;
-                        /** @example 14.2841248 */
+                        /**
+                         * @description Tiempo de respuesta medio
+                         * @example 14.2841248
+                         */
                         responseTimeMs: number;
-                        statusCode: number | null;
+                        minResponseTimeMs: number;
+                        maxResponseTimeMs: number;
+                        /** @description Checks del intervalo */
+                        checks: number;
+                        /** @description Checks operativos del intervalo */
+                        upChecks: number;
                     }[];
                 };
             };

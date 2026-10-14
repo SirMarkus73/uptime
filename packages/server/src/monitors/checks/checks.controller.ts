@@ -22,12 +22,7 @@ import {
   monitorIdFieldSchema,
 } from "../dto/monitor.dto.js"
 import { ChecksService } from "./checks.service.js"
-import {
-  type CheckDto,
-  type CheckListDto,
-  checkListSchema,
-  checkSchema,
-} from "./dto/check.dto.js"
+import { type CheckDto, checkSchema } from "./dto/check.dto.js"
 import {
   type FindAllChecksParamsDto,
   type FindAllChecksQueryDto,
@@ -36,6 +31,8 @@ import {
   findAllChecksSchema,
 } from "./dto/find-all.dto.js"
 import {
+  type CheckStatListDto,
+  checkStatListSchema,
   type FindChecksSinceDaysQueryDto,
   findChecksSinceDaysQuerySchema,
 } from "./dto/find-check.dto.js"
@@ -50,21 +47,37 @@ export class ChecksController {
     standardSchema: internalServerErrorSchema,
   })
   @ApiNotFoundResponse({ standardSchema: notFoundSchema })
-  @ApiSerializedResponse({ status: HttpStatus.OK, schema: checkListSchema })
+  @ApiSerializedResponse({
+    status: HttpStatus.OK,
+    schema: checkStatListSchema,
+  })
   @Get("stats")
   async findSinceDays(
     @Param("monitorId", { schema: monitorIdFieldSchema })
     monitorId: MonitorIdFieldDto,
     @Query({ schema: findChecksSinceDaysQuerySchema })
-    { sinceDays }: FindChecksSinceDaysQueryDto,
+    { detail }: FindChecksSinceDaysQueryDto,
     @Session() session: UserSession,
-  ): Promise<CheckListDto> {
+  ): Promise<CheckStatListDto> {
     const { user } = session
     const monitor = await this.checksService.findMonitor(monitorId)
 
     if (monitor.ownedBy !== user.id) throw new NotFoundException()
 
-    return this.checksService.findSinceDays(monitorId, sinceDays)
+    switch (detail) {
+      case "today": {
+        return this.checksService.getTodayStats(monitorId)
+      }
+      case "week": {
+        return this.checksService.getWeekStats(monitorId)
+      }
+      case "month": {
+        return this.checksService.getMonthStats(monitorId)
+      }
+      case "year": {
+        return this.checksService.getYearStats(monitorId)
+      }
+    }
   }
 
   @ApiAuthenticationErrors()

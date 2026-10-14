@@ -5,7 +5,8 @@ import { authClient } from "#/features/auth/auth-client"
 import { $api } from "#/shared/api/fetch-client"
 import type { MonitorDetail, MonitorListItem } from "../interfaces/monitor"
 import {
-  monitorChecksStatsQueryOptions,
+  monitorChecksQueryOptions,
+  monitorChecksStatsQueryKey,
   monitorQueryOptions,
   monitorsQueryOptions,
 } from "./queries"
@@ -158,16 +159,18 @@ export function useRunMonitor(monitorId: MonitorDetail["id"]) {
           ),
         )
 
-        client.setQueryData(
-          monitorQueryOptions(monitorId).queryKey,
-          (monitor) =>
-            monitor ? { ...monitor, lastCheck: createdCheck } : monitor,
-        )
+        client.invalidateQueries({
+          queryKey: monitorQueryOptions(monitorId).queryKey,
+        })
 
-        client.setQueryData(
-          monitorChecksStatsQueryOptions(monitorId).queryKey,
-          (checks) => (checks ? [createdCheck, ...checks] : checks),
-        )
+        // Las estadísticas vienen agrupadas por intervalos y el historial está
+        // paginado por cursor; se vuelven a pedir en vez de recalcularlos aquí.
+        client.invalidateQueries({
+          queryKey: monitorChecksStatsQueryKey(monitorId),
+        })
+        client.invalidateQueries({
+          queryKey: monitorChecksQueryOptions(monitorId).queryKey,
+        })
 
         const ranMonitorMsg = "Monitor ejecutando correctamente"
         toast.update(toastId, {

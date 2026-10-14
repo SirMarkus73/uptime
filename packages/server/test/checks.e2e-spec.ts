@@ -1,27 +1,29 @@
 import { randomUUID } from "node:crypto"
-import { sub } from "date-fns"
+import { add, startOfDay, sub } from "date-fns"
 import { db } from "../src/db/index.js"
 import { check } from "../src/db/schema.js"
-import {
-  checkListSchema,
-  checkSchema,
-} from "../src/monitors/checks/dto/check.dto.js"
+import { checkSchema } from "../src/monitors/checks/dto/check.dto.js"
 import {
   FIND_ALL_PAGE_SIZE,
   findAllChecksSchema,
 } from "../src/monitors/checks/dto/find-all.dto.js"
+import { checkStatListSchema } from "../src/monitors/checks/dto/find-check.dto.js"
 import { notFoundSchema } from "../src/shared/not-found-error.js"
 import { createMonitor, test } from "./fixtures.js"
 
 // Guarda un check con la fecha indicada sin pasar por la API.
-async function insertCheck(monitorId: string, checkedAt: Date | string) {
+async function insertCheck(
+  monitorId: string,
+  checkedAt: Date | string,
+  { isUp = true, responseTimeMs = 10 } = {},
+) {
   const [inserted] = await db
     .insert(check)
     .values({
       monitorId,
-      isUp: true,
-      statusCode: 200,
-      responseTimeMs: 10,
+      isUp,
+      statusCode: isUp ? 200 : 500,
+      responseTimeMs,
       checkedAt:
         typeof checkedAt === "string" ? checkedAt : checkedAt.toISOString(),
     })
@@ -185,37 +187,59 @@ describe("ChecksController (e2e)", () => {
   })
 
   describe("GET /api/monitors/:monitorId/checks/stats", () => {
-    test("200 with the checks of the last 5 days, newest first", async ({
+    test.for(["today", "week", "month", "year"])(
+      "200 with the checks of the current %s grouped by interval",
+      async (detail, { user }) => {
+        const monitor = await createMonitor(user)
+        const dayStart = startOfDay(new Date())
+        await insertCheck(monitor.id, sub(dayStart, { years: 2 }))
+        await insertCheck(monitor.id, add(dayStart, { seconds: 1 }), {
+          responseTimeMs: 10,
+        })
+        await insertCheck(monitor.id, add(dayStart, { seconds: 2 }), {
+          isUp: false,
+          responseTimeMs: 30,
+        })
+
+        const response = await user.agent
+          .get(`/api/monitors/${monitor.id}/checks/stats`)
+          .query({ detail })
+          .expect(200)
+
+        expect(response.body).toEqual(
+          expect.schemaMatching(checkStatListSchema),
+        )
+        expect(response.body).toEqual([
+          expect.objectContaining({
+            isUp: false,
+            responseTimeMs: 20,
+            minResponseTimeMs: 10,
+            maxResponseTimeMs: 30,
+            checks: 2,
+            upChecks: 1,
+          }),
+        ])
+      },
+    )
+
+    test("200 with the intervals of today every 15 minutes, newest first", async ({
       user,
     }) => {
       const monitor = await createMonitor(user)
-      const now = new Date()
-      await insertCheck(monitor.id, sub(now, { days: 10 }))
-      const older = await insertCheck(monitor.id, sub(now, { days: 2 }))
-      const newer = await insertCheck(monitor.id, sub(now, { hours: 1 }))
+      const dayStart = startOfDay(new Date())
+      await insertCheck(monitor.id, add(dayStart, { minutes: 1 }))
+      await insertCheck(monitor.id, add(dayStart, { minutes: 20 }))
 
       const response = await user.agent
         .get(`/api/monitors/${monitor.id}/checks/stats`)
         .expect(200)
 
-      expect(response.body).toEqual(expect.schemaMatching(checkListSchema))
-      expect(response.body.map(({ id }: { id: string }) => id)).toEqual([
-        newer?.id,
-        older?.id,
+      expect(
+        response.body.map(({ checkedAt }: { checkedAt: string }) => checkedAt),
+      ).toEqual([
+        add(dayStart, { minutes: 15 }).toISOString(),
+        dayStart.toISOString(),
       ])
-      expect(response.body[0]).not.toHaveProperty("monitorId")
-    })
-
-    test("200 with the checks since the given days", async ({ user }) => {
-      const monitor = await createMonitor(user)
-      const old = await insertCheck(monitor.id, sub(new Date(), { days: 10 }))
-
-      const response = await user.agent
-        .get(`/api/monitors/${monitor.id}/checks/stats`)
-        .query({ sinceDays: 30 })
-        .expect(200)
-
-      expect(response.body).toEqual([expect.objectContaining({ id: old?.id })])
     })
 
     test("200 with an empty list when the monitor has no checks", async ({
@@ -225,6 +249,7 @@ describe("ChecksController (e2e)", () => {
 
       const response = await user.agent
         .get(`/api/monitors/${monitor.id}/checks/stats`)
+        .query({ detail: "year" })
         .expect(200)
 
       expect(response.body).toEqual([])
@@ -234,16 +259,12 @@ describe("ChecksController (e2e)", () => {
       await user.agent.get("/api/monitors/not-a-uuid/checks/stats").expect(400)
     })
 
-    test("400 when sinceDays is out of range", async ({ user }) => {
+    test("400 when detail is invalid", async ({ user }) => {
       const monitor = await createMonitor(user)
 
       await user.agent
         .get(`/api/monitors/${monitor.id}/checks/stats`)
-        .query({ sinceDays: 91 })
-        .expect(400)
-      await user.agent
-        .get(`/api/monitors/${monitor.id}/checks/stats`)
-        .query({ sinceDays: 0 })
+        .query({ detail: "decade" })
         .expect(400)
     })
 
@@ -256,6 +277,7 @@ describe("ChecksController (e2e)", () => {
     test("404 when the monitor does not exist", async ({ user }) => {
       const response = await user.agent
         .get(`/api/monitors/${randomUUID()}/checks/stats`)
+        .query({ detail: "today" })
         .expect(404)
 
       expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
@@ -270,6 +292,7 @@ describe("ChecksController (e2e)", () => {
 
       const response = await user.agent
         .get(`/api/monitors/${monitor.id}/checks/stats`)
+        .query({ detail: "today" })
         .expect(404)
 
       expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
@@ -290,9 +313,9 @@ describe("ChecksController (e2e)", () => {
       expect(response.body).not.toHaveProperty("monitorId")
 
       const checks = await user.agent
-        .get(`/api/monitors/${monitor.id}/checks/stats`)
+        .get(`/api/monitors/${monitor.id}/checks`)
         .expect(200)
-      expect(checks.body).toEqual([response.body])
+      expect(ids(checks.body)).toEqual([response.body.id])
     })
 
     test("400 when the id is not a uuid", async ({ user }) => {
@@ -324,6 +347,7 @@ describe("ChecksController (e2e)", () => {
       expect(response.body).toEqual(expect.schemaMatching(notFoundSchema))
       const ownerView = await otherUser.agent
         .get(`/api/monitors/${monitor.id}/checks/stats`)
+        .query({ detail: "today" })
         .expect(200)
       expect(ownerView.body).toEqual([])
     })

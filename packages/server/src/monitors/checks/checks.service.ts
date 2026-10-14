@@ -4,18 +4,24 @@ import {
   NotFoundException,
 } from "@nestjs/common"
 import type { UserSession } from "@thallesp/nestjs-better-auth"
+import { startOfDay, startOfMonth, startOfWeek, startOfYear } from "date-fns"
 import { db } from "../../db/index.js"
 import { UptimeService } from "../../uptime/uptime.service.js"
 import { MonitorDetailDto, MonitorIdFieldDto } from "../dto/monitor.dto.js"
 import { MonitorsRepository } from "../monitors.repository.js"
 import { ChecksRepository } from "./checks.repository.js"
-import { CheckDto, CheckListDto } from "./dto/check.dto.js"
+import { CheckDto } from "./dto/check.dto.js"
 import {
   type ChecksCursorDto,
   encodeChecksCursor,
   FIND_ALL_PAGE_SIZE,
   type FindAllChecksDto,
 } from "./dto/find-all.dto.js"
+import {
+  type CheckStatListDto,
+  STATS_BUCKETS,
+  type StatsBucket,
+} from "./dto/find-check.dto.js"
 
 @Injectable()
 export class ChecksService {
@@ -91,12 +97,39 @@ export class ChecksService {
     }
   }
 
-  async findSinceDays(
+  // Los periodos son de calendario (no ventanas móviles) y se calculan en la
+  // zona horaria del servidor; la semana empieza el lunes.
+  async getTodayStats(id: MonitorDetailDto["id"]): Promise<CheckStatListDto> {
+    return this.findStatsSince(id, startOfDay(new Date()), STATS_BUCKETS.today)
+  }
+
+  async getWeekStats(id: MonitorDetailDto["id"]): Promise<CheckStatListDto> {
+    return this.findStatsSince(
+      id,
+      startOfWeek(new Date(), { weekStartsOn: 1 }),
+      STATS_BUCKETS.week,
+    )
+  }
+
+  async getMonthStats(id: MonitorDetailDto["id"]): Promise<CheckStatListDto> {
+    return this.findStatsSince(
+      id,
+      startOfMonth(new Date()),
+      STATS_BUCKETS.month,
+    )
+  }
+
+  async getYearStats(id: MonitorDetailDto["id"]): Promise<CheckStatListDto> {
+    return this.findStatsSince(id, startOfYear(new Date()), STATS_BUCKETS.year)
+  }
+
+  private async findStatsSince(
     id: MonitorDetailDto["id"],
-    days: number,
-  ): Promise<CheckListDto> {
+    since: Date,
+    bucket: StatsBucket,
+  ): Promise<CheckStatListDto> {
     try {
-      return await this.checksRepository.findAllSinceDays(id, days)
+      return await this.checksRepository.findStatsSince(id, since, bucket)
     } catch {
       throw new InternalServerErrorException()
     }
