@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/SirMarkus73/uptime/compare/v1.6.0...v1.7.0) (2026-10-14)
+
+
+### Bug Fixes
+
+* **monitors:** No perder checks al paginar el historial por cursor ([cc24a82](https://github.com/SirMarkus73/uptime/commit/cc24a8236407b4360eb3a7ea3a37a794c4372d5c))
+
+
+### Features
+
+* **monitors:** Agrupar el tiempo de respuesta por intervalos y permitir elegir el periodo ([fb55ddc](https://github.com/SirMarkus73/uptime/commit/fb55ddcf97d19e256bd87d86134bc1328e77c441))
+
 # [1.6.0](https://github.com/SirMarkus73/uptime/compare/v1.5.0...v1.6.0) (2026-10-08)
 
 
