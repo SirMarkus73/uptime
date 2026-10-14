@@ -4,28 +4,135 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+# Nunca dos releases a la vez: la segunda espera a que termine la primera en vez de cancelarla
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+# Sin permisos por defecto; cada job pide solo los que necesita
+permissions: {}
+
+env:
+  IMAGE_NAME: ghcr.io/sirmarkus73/uptime
 
 jobs:
-  release:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm release
+      - name: Lint y formato
+        run: pnpm check
+
+      - name: Tipos
+        run: pnpm turbo check-types
+
+      - name: Tests unitarios
+        run: pnpm test
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      published: ${{ steps.release.outputs.published }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # semantic-release crea el commit "chore(release)" y lo etiqueta; si HEAD
+      # acaba con una etiqueta v*, es que se ha publicado una versión nueva
+      - name: Publicar release
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm release
+          tag=$(git tag --points-at HEAD --list 'v*' | head -n 1)
+          if [ -n "$tag" ]; then
+            {
+              echo "published=true"
+              echo "tag=$tag"
+              echo "version=${tag#v}"
+              echo "sha=$(git rev-parse HEAD)"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # la etiqueta apunta al commit de release, con el package.json ya actualizado
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Iniciar sesión en GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar la imagen
+        # fijado a un commit: la acción no publica versiones etiquetadas de forma fiable
+        uses: iloveitaly/github-action-railpack@f4c3d22446c5bda92261727f3dbb352eadeab7a3
+        with:
+          push: true
+          cache: true
+          cache_tag: ${{ env.IMAGE_NAME }}:latest
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ needs.release.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.release.outputs.version }}
+            org.opencontainers.image.revision=${{ needs.release.outputs.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      # el webhook de Dokploy hace que el servidor descargue la imagen nueva
+      - name: Desplegar en Dokploy
+        env:
+          DOKPLOY_DEPLOY_URL: ${{ secrets.DOKPLOY_DEPLOY_URL }}
+        run: curl -fsS --retry 3 --retry-all-errors -X POST "$DOKPLOY_DEPLOY_URL"
