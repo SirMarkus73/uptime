@@ -31,7 +31,7 @@ setDefaultBackendFactory(createPostgresBackend)
         {
           name: "long",
           ttl: minutes(1),
-          limit: 8,
+          limit: 30,
         },
       ],
     }),
